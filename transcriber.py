@@ -173,10 +173,8 @@ class Transcriber:
         }
 
     def transcribe(self, audio_path):
-        import whisperx
-        model_dir = "G:\\software\\fastwisper_data\\"
-        
-        # 使用正确的模型名称 "large-v3"
+        import whisperx     
+           
         model = whisperx.load_model(
             # "large-v3-turbo",           # 修改模型名称
             self.config.whisper_model_name,
