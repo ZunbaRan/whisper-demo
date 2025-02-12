@@ -93,3 +93,48 @@ Required-by: whisperx, pyannote.metrics, pyannote.database
 ```shell
 & G:/env/python3.9.7/python.exe g:/project/offline-whisper/offline-whisperx/testing.py
 ```
+
+
+## API
+
+1. 安装新的依赖:
+```bash
+pip install -r requirements.txt
+```
+
+1. 启动服务:
+```bash
+python run_server.py
+```
+
+1. API 使用示例:
+```python
+import requests
+
+url = "http://localhost:8000/transcribe"
+data = {
+    "audio_path": "path/to/your/audio/file.mp3"
+}
+
+response = requests.post(url, json=data)
+print(response.json())
+```
+
+服务启动后:
+- API 文档访问地址: http://localhost:8000/docs
+- 可以通过 POST 请求 http://localhost:8000/transcribe 端点来处理音频文件
+- 返回结果包含处理时间和输出文件路径
+
+主要特点:
+1. 使用 FastAPI 框架提供 RESTful API
+2. 保持了原有的转写功能和配置
+3. 提供了详细的API文档
+4. 包含错误处理
+5. 返回处理时间统计
+6. 支持异步处理
+
+注意事项:
+1. 确保音频文件路径是服务器可访问的
+2. 输出文件会保存在 output 目录下
+3. 服务默认运行在 8000 端口，可以根据需要修改
+4. 建议在生产环境中添加适当的安全措施（如认证）
