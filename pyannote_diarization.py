@@ -16,11 +16,11 @@ class DiarizationPipeline:
     def __init__(
         self,
         config_path=None,  # path to .yaml config file
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Optional[Union[str, torch.device]] = "cuda",
     ):
-        if isinstance(device, str):
-            device = torch.device(device)
-
+        # if isinstance(device, str):
+        #     device = torch.device(device)
+        device = torch.device("cuda")
         # load model from config file
         self.model = Pipeline.from_pretrained(config_path).to(device)
 
