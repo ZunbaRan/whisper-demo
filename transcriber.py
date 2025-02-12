@@ -30,7 +30,7 @@ from pyannote_diarization import DiarizationPipeline
 class TranscriptionConfig:
     def __init__(
         self,
-        whisper_model_name="base",
+        whisper_model_name="large-v3-turbo",
         whisper_download_root=None,
         device=None,
         device_index=0,
@@ -178,10 +178,12 @@ class Transcriber:
         
         # 使用正确的模型名称 "large-v3"
         model = whisperx.load_model(
-            "large-v3-turbo",           # 修改模型名称
+            # "large-v3-turbo",           # 修改模型名称
+            self.config.whisper_model_name,
             device=self.device,
             compute_type=self.config.compute_type,
-            download_root=model_dir,
+            # download_root=model_dir,
+            download_root=self.config.whisper_download_root
         )
 
         results = []

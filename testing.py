@@ -5,9 +5,9 @@ import time
 # all required models are available in the models directory
 MODELS_DIR = r"./models"
 
-FASTER_WHISPER_PATH = f"{MODELS_DIR}/faster_whisper_base"
+# FASTER_WHISPER_PATH = f"{MODELS_DIR}/faster_whisper_base"
+WHISPER_MODEL_NAME = "large-v3-turbo"
 ALIGN_MODEL_DIR = f"{MODELS_DIR}/wav2vec2_base"
-
 PYANNOTE_CONFIG_PATH = "./pyannote_config.yaml"
 
 # 直接指定使用 CUDA
@@ -17,7 +17,8 @@ print(f"GPU: {torch.cuda.get_device_name(0)}")
 
 # change the config as per your requirements
 config = TranscriptionConfig(
-    whisper_model_name=FASTER_WHISPER_PATH,  # provide whisper model name or path
+    whisper_model_name=WHISPER_MODEL_NAME,  # provide whisper model name or path
+    whisper_download_root=MODELS_DIR,
     device=device,                           # 直接使用cuda
     device_index=0,                         # 指定GPU索引
     compute_type="float16",                 # 使用float16
