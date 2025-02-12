@@ -34,7 +34,7 @@ class TranscriptionConfig:
         whisper_download_root=None,
         device=None,
         device_index=0,
-        batch_size=8,
+        batch_size=16,
         compute_type="float16",
         output_dir=".",
         output_format="all",
@@ -173,16 +173,25 @@ class Transcriber:
         }
 
     def transcribe(self, audio_path):
-        model = self.load_asr_model()
-        results = []
-
-        audio = load_audio(audio_path)
-        result = model.transcribe(
-            audio,
-            batch_size=self.config.batch_size,
-            chunk_size=self.config.chunk_size,
-            print_progress=self.config.print_progress,
+        import whisperx
+        model_dir = "G:\\software\\fastwisper_data\\"
+        
+        # 使用正确的模型名称 "large-v3"
+        model = whisperx.load_model(
+            "large-v3-turbo",           # 修改模型名称
+            device=self.device,
+            compute_type=self.config.compute_type,
+            download_root=model_dir,
         )
+
+        results = []
+        audio = whisperx.load_audio(audio_path)
+        # result = model.transcribe(
+        #     audio,
+        #     batch_size=self.config.batch_size,
+        #     language=self.config.language    # 指定语言避免检测
+        # )
+        result = model.transcribe(audio, batch_size=self.config.batch_size)
         results.append((result, audio_path))
 
         del model
@@ -238,6 +247,9 @@ class Transcriber:
     def diarize_transcriptions(self, transcriptions):
         if not self.config.diarize:
             return transcriptions
+
+        print('self.config.pyannote_config_path',self.config.pyannote_config_path)
+
 
         diarize_model = DiarizationPipeline(
             config_path=self.config.pyannote_config_path
