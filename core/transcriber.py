@@ -24,7 +24,7 @@ from whisperx.audio import load_audio
 from whisperx.diarize import assign_word_speakers
 from whisperx.utils import get_writer
 
-from pyannote_diarization import DiarizationPipeline
+from core.diarization import DiarizationPipeline
 
 
 class TranscriptionConfig:

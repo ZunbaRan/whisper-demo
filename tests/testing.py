@@ -1,14 +1,15 @@
-from transcriber import Transcriber, TranscriptionConfig
+from core.transcriber import Transcriber, TranscriptionConfig
+from config.paths import PROJECT_ROOT
 import torch
 import time
 
 # all required models are available in the models directory
-MODELS_DIR = r"./models"
+MODELS_DIR = PROJECT_ROOT + "/models"
 
 # FASTER_WHISPER_PATH = f"{MODELS_DIR}/faster_whisper_base"
 WHISPER_MODEL_NAME = "large-v3-turbo"
 ALIGN_MODEL_DIR = f"{MODELS_DIR}/wav2vec2_base"
-PYANNOTE_CONFIG_PATH = "./pyannote_config.yaml"
+PYANNOTE_CONFIG_PATH = PROJECT_ROOT + "/config/pyannote_config.yaml"
 
 # 直接指定使用 CUDA
 device = "cuda"

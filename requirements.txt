@@ -5,3 +5,6 @@ whisperx==3.3.1
 fastapi==0.110.0
 uvicorn==0.27.1
 pydantic==2.6.3
+requests
+httpx
+pytest

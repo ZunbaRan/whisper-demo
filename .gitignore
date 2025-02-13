@@ -1,5 +1,17 @@
-**/models
-**/__pycache__
-**/venv
-
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 venv/
+ENV/
+
+# Project specific
+**/models
+output/
+*.log
+
+# IDE
+.vscode/
+.idea/
