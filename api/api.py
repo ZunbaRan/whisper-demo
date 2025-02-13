@@ -10,7 +10,7 @@ from config.paths import PROJECT_ROOT
 from typing import Optional, List, Dict, Any
 import requests
 from .models import FollowEntriesResponse
-from .services import FollowService
+from .services import FollowService, TranscriptionService, DownloadService
 
 app = FastAPI(title="Whisper Transcription API")
 
@@ -38,6 +38,12 @@ config = TranscriptionConfig(
     output_format="json",
 )
 
+# 初始化服务
+transcription_service = TranscriptionService(config)
+
+# 初始化下载服务
+download_service = DownloadService()
+
 class TranscriptionRequest(BaseModel):
     audio_path: str
 
@@ -50,6 +56,7 @@ class TranscriptionResponse(BaseModel):
     write_time: float
     total_time: float
     output_file: str
+    simplified_output_file: str
 
 class FollowEntry(BaseModel):
     read: bool
@@ -69,65 +76,18 @@ class FollowCountRequest(BaseModel):
     cookie: str
     num: int = 10
 
+class DownloadResponse(BaseModel):
+    success: List[str]
+    failed: List[str]
+
+class BatchTranscriptionResponse(BaseModel):
+    success: List[str]
+    failed: List[str]
+
 @app.post("/transcribe", response_model=TranscriptionResponse)
 async def transcribe_audio(request: TranscriptionRequest):
-    # 验证文件是否存在
-    if not os.path.exists(request.audio_path):
-        raise HTTPException(status_code=404, detail="Audio file not found")
-    
-    try:
-        import time
-        transcriber = Transcriber(config)
-        
-        # 转写步骤
-        print("\n=== 开始转写 ===")
-        start_time = time.time()
-        transcriptions = transcriber.transcribe(audio_path=request.audio_path)
-        transcribe_time = time.time() - start_time
-        print(f"转写耗时: {transcribe_time:.2f}秒")
-
-        # 对齐步骤
-        print("\n=== 开始对齐 ===")
-        start_time = time.time()
-        transcriptions = transcriber.align_transcriptions(transcriptions)
-        align_time = time.time() - start_time
-        print(f"对齐耗时: {align_time:.2f}秒")
-
-        # 说话人分离步骤
-        print("\n=== 开始分离说话人 ===")
-        start_time = time.time()
-        transcriptions = transcriber.diarize_transcriptions(transcriptions)
-        diarize_time = time.time() - start_time
-        print(f"分离耗时: {diarize_time:.2f}秒")
-
-        start_time = time.time()
-        transcriber.write_transcriptions(transcriptions=transcriptions)
-        write_time = time.time() - start_time
-
-        # 计算总时间
-        total_time = transcribe_time + align_time + diarize_time + write_time
-        
-        # 获取输出文件路径
-        filename = os.path.basename(request.audio_path)
-        output_file = os.path.join("output", f"{os.path.splitext(filename)[0]}.json")
-
-        # 处理JSON并创建简化版本
-        simplified_output_file = extract_segments_info(output_file)
-
-        return TranscriptionResponse(
-            status="success",
-            message="Transcription completed successfully",
-            transcribe_time=round(transcribe_time, 2),
-            align_time=round(align_time, 2),
-            diarize_time=round(diarize_time, 2),
-            write_time=round(write_time, 2),
-            total_time=round(total_time, 2),
-            output_file=output_file,
-            simplified_output_file=simplified_output_file
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """处理音频转写请求"""
+    return await transcription_service.transcribe_audio(request.audio_path)
 
 @app.post("/follow/entries", response_model=FollowEntriesResponse)
 async def get_follow_entries(request: FollowRequest):
@@ -144,6 +104,16 @@ async def get_entries_batch(request: FollowCountRequest):
         cookie=request.cookie,
         num=request.num
     )
+
+@app.get("/download/pending", response_model=DownloadResponse)
+async def download_pending_audio():
+    """下载所有未下载的音频文件"""
+    return await download_service.download_pending_files()
+
+@app.get("/transcribe/batch", response_model=BatchTranscriptionResponse)
+async def batch_transcribe_audio():
+    """批量转写已下载的音频文件"""
+    return await transcription_service.batch_transcribe_downloaded_audio()
 
 if __name__ == "__main__":
     import uvicorn

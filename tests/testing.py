@@ -2,6 +2,7 @@ from core.transcriber import Transcriber, TranscriptionConfig
 from config.paths import PROJECT_ROOT
 import torch
 import time
+import os
 
 # all required models are available in the models directory
 MODELS_DIR = PROJECT_ROOT + "/models"
@@ -11,10 +12,11 @@ WHISPER_MODEL_NAME = "large-v3-turbo"
 ALIGN_MODEL_DIR = f"{MODELS_DIR}/wav2vec2_base"
 PYANNOTE_CONFIG_PATH = PROJECT_ROOT + "/config/pyannote_config.yaml"
 
-# 直接指定使用 CUDA
-device = "cuda"
+# 检查 CUDA 是否可用
+device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
-print(f"GPU: {torch.cuda.get_device_name(0)}")
+if device == "cuda":
+    print(f"GPU: {torch.cuda.get_device_name(0)}")
 
 # change the config as per your requirements
 config = TranscriptionConfig(
@@ -22,7 +24,7 @@ config = TranscriptionConfig(
     whisper_download_root=MODELS_DIR,
     device=device,                           # 直接使用cuda
     device_index=0,                         # 指定GPU索引
-    compute_type="float16",                 # 使用float16
+    compute_type="float16" if device == "cuda" else "float32",  # CPU 使用 float32
     align_model_dir=ALIGN_MODEL_DIR,
     pyannote_config_path=PYANNOTE_CONFIG_PATH,
     language="en",                          # 指定语言，避免语言检测
@@ -32,8 +34,11 @@ config = TranscriptionConfig(
 )
 
 # audio_file = "./data/sample.wav"
-audio_file = "G:\\project\\whisperX-main\\whisperX-main\\Lynn_Peters.mp3"
+audio_file = "G:\\project\\whisper-demo\\whisper-demo\\Lynn_Peters.mp3"
 
+print("Current working directory:", os.getcwd())
+print("Model directory:", os.path.abspath(MODELS_DIR))
+print("Full model path:", os.path.join(MODELS_DIR, WHISPER_MODEL_NAME))
 
 transcriber = Transcriber(config)
 

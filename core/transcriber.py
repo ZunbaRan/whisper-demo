@@ -127,7 +127,21 @@ class Transcriber:
     def __init__(self, config: TranscriptionConfig):
         self.config = config
         os.makedirs(self.config.output_dir, exist_ok=True)
-        self.device = self.config.device
+        
+        # 确保 CUDA 可用
+        if self.config.device == "cuda" and not torch.cuda.is_available():
+            print("Warning: CUDA requested but not available. Falling back to CPU")
+            self.device = "cpu"
+        else:
+            self.device = self.config.device
+            if self.device == "cuda":
+                # 设置默认 CUDA 设备
+                torch.cuda.set_device(self.config.device_index)
+        
+        print(f"Using device: {self.device}")
+        if self.device == "cuda":
+            print(f"CUDA device: {torch.cuda.get_device_name(self.config.device_index)}")
+        
         self.faster_whisper_threads = 4
         if self.config.threads > 0:
             torch.set_num_threads(self.config.threads)
@@ -174,23 +188,24 @@ class Transcriber:
 
     def transcribe(self, audio_path):
         import whisperx     
+
+        print('self.config.whisper_model_name', self.config.whisper_model_name)
+        print('self.config.whisper_download_root', self.config.whisper_download_root)
+        
+        # 修正模型路径
+        model_path = os.path.join(self.config.whisper_download_root, self.config.whisper_model_name)
+        print('Looking for model at:', model_path)
            
         model = whisperx.load_model(
-            # "large-v3-turbo",           # 修改模型名称
             self.config.whisper_model_name,
             device=self.device,
             compute_type=self.config.compute_type,
-            # download_root=model_dir,
-            download_root=self.config.whisper_download_root
+            download_root=self.config.whisper_download_root,
+            local_files_only=True  # 强制只使用本地文件
         )
 
         results = []
         audio = whisperx.load_audio(audio_path)
-        # result = model.transcribe(
-        #     audio,
-        #     batch_size=self.config.batch_size,
-        #     language=self.config.language    # 指定语言避免检测
-        # )
         result = model.transcribe(audio, batch_size=self.config.batch_size)
         results.append((result, audio_path))
 

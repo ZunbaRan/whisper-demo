@@ -1,7 +1,7 @@
 import os
 
-# 获取项目根目录
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# 获取项目根目录 (whisper-demo)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 定义各种路径
 MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
@@ -10,4 +10,12 @@ OUTPUT_DIR = os.path.join(PROJECT_ROOT, "output")
 
 # 具体模型路径
 ALIGN_MODEL_DIR = os.path.join(MODELS_DIR, "wav2vec2_base")
-PYANNOTE_CONFIG_PATH = os.path.join(CONFIG_DIR, "pyannote_config.yaml") 
+PYANNOTE_CONFIG_PATH = os.path.join(CONFIG_DIR, "pyannote_config.yaml")
+
+if __name__ == "__main__":
+    print("PROJECT_ROOT:", PROJECT_ROOT)
+    print("MODELS_DIR:", MODELS_DIR)
+    print("CONFIG_DIR:", CONFIG_DIR)
+    print("OUTPUT_DIR:", OUTPUT_DIR)
+    print("ALIGN_MODEL_DIR:", ALIGN_MODEL_DIR)
+    print("PYANNOTE_CONFIG_PATH:", PYANNOTE_CONFIG_PATH) 
