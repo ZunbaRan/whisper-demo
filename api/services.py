@@ -31,7 +31,7 @@ class FollowService:
     @staticmethod
     async def feed_req(
         cookie: str,
-        is_archived: bool = False,
+        is_archived: bool = True,
         view: int = 4,
         published_after: Optional[str] = None
     ) -> FollowEntriesResponse:
@@ -46,6 +46,9 @@ class FollowService:
             if published_after:
                 payload["publishedAfter"] = published_after
             
+            print(f"发送请求: {FollowService.BASE_URL}/entries")
+            print(f"请求参数: {payload}")
+            
             response = requests.post(
                 f'{FollowService.BASE_URL}/entries',
                 headers=headers,
@@ -55,12 +58,14 @@ class FollowService:
             try:
                 response.raise_for_status()
                 result = FollowEntriesResponse(**response.json())
+                print(f"请求成功，返回数据条数: {len(result.data) if result.data else 0}")
                 
                 # 处理本地化存储
                 FollowService.save_entries_to_tsv(result.data)
                 
                 return result
             except requests.HTTPError as e:
+                print(f"HTTP错误: {e}")
                 error_detail = f"HTTP {response.status_code}"
                 try:
                     error_detail += f": {response.json()}"
@@ -145,15 +150,21 @@ class FollowService:
     
     @staticmethod
     async def fetch_entries_with_count(cookie: str, num: int) -> FollowEntriesResponse:
+        print(f"\n=== 开始获取数据，目标数量: {num} ===")
+        
         # 第一次调用，不带 publishedAfter
+        print("\n1. 第一次请求数据")
         result = await FollowService.feed_req(cookie)
         all_entries = result.data
+        print(f"获取到 {len(all_entries)} 条数据")
         
+        request_count = 1
         # 如果返回的数量小于请求的数量，继续获取
         while len(all_entries) < num:
             if not all_entries:  # 如果没有更多数据了
+                print("没有更多数据，退出循环")
                 break
-                
+            
             # 获取最后一条记录的发布时间
             last_published_at = all_entries[-1].entries.publishedAt
             
@@ -164,19 +175,37 @@ class FollowService:
                     valid_published_at = entry.entries.publishedAt
                     break
             
+            published_after = valid_published_at or last_published_at
+            print(f"\n{request_count + 1}. 发起后续请求")
+            print(f"当前数据量: {len(all_entries)}")
+            print(f"目标数据量: {num}")
+            print(f"使用的时间戳: {published_after}")
+            
             # 使用有效的时间进行下一次请求
             next_result = await FollowService.feed_req(
                 cookie=cookie,
-                published_after=valid_published_at or last_published_at
+                published_after=published_after
             )
             
             if not next_result.data:  # 如果没有新数据了
+                print("本次请求没有返回数据，退出循环")
                 break
-                
+            
+            print(f"本次获取到 {len(next_result.data)} 条新数据")
             all_entries.extend(next_result.data)
+            request_count += 1
+            
+            # 添加请求间隔，避免请求过于频繁
+            await asyncio.sleep(1)
         
         # 截取所需数量的条目
         all_entries = all_entries[:num]
+        
+        print(f"\n=== 数据获取完成 ===")
+        print(f"总请求次数: {request_count}")
+        print(f"最终获取数据量: {len(all_entries)}")
+        if len(all_entries) < num:
+            print(f"注意: 实际获取数据量少于目标数量，可能已经获取了所有可用数据")
         
         return FollowEntriesResponse(
             code=0,
