@@ -31,7 +31,7 @@ class FollowService:
     @staticmethod
     async def feed_req(
         cookie: str,
-        is_archived: bool = True,
+        is_archived: bool = False,
         view: int = 4,
         published_after: Optional[str] = None
     ) -> FollowEntriesResponse:
