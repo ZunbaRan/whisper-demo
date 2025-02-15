@@ -10,7 +10,12 @@ from config.paths import PROJECT_ROOT
 from typing import Optional, List, Dict, Any
 import requests
 from .models import FollowEntriesResponse
-from .services import FollowService, TranscriptionService, DownloadService
+from api.services import (
+    FollowService,
+    TranscriptionService,
+    DownloadService,
+    WorkflowService
+)
 
 app = FastAPI(title="Whisper Transcription API")
 
@@ -43,6 +48,9 @@ transcription_service = TranscriptionService(config)
 
 # 初始化下载服务
 download_service = DownloadService()
+
+# 初始化工作流服务
+workflow_service = WorkflowService(transcription_service)
 
 class TranscriptionRequest(BaseModel):
     audio_path: str
@@ -102,7 +110,8 @@ async def get_entries_batch(request: FollowCountRequest):
     """获取指定数量的条目，如果第一次请求不够，会继续请求直到达到指定数量"""
     return await FollowService.fetch_entries_with_count(
         cookie=request.cookie,
-        num=request.num
+        num=request.num,
+        fetch_mode=request.fetch_mode
     )
 
 @app.get("/download/pending", response_model=DownloadResponse)
@@ -114,6 +123,11 @@ async def download_pending_audio():
 async def batch_transcribe_audio():
     """批量转写已下载的音频文件"""
     return await transcription_service.batch_transcribe_downloaded_audio()
+
+@app.post("/workflow/complete", response_model=Dict[str, List[str]])
+async def run_complete_workflow(cookie: str):
+    """运行完整的工作流程：获取数据、下载并处理文件"""
+    return await workflow_service.run_complete_workflow(cookie)
 
 if __name__ == "__main__":
     import uvicorn

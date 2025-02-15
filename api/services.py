@@ -48,34 +48,40 @@ class FollowService:
             
             print(f"发送请求: {FollowService.BASE_URL}/entries")
             print(f"请求参数: {payload}")
+            print(f"请求头: {headers}")  # 添加请求头信息的输出
             
-            response = requests.post(
-                f'{FollowService.BASE_URL}/entries',
-                headers=headers,
-                json=payload
-            )
-            
-            try:
-                response.raise_for_status()
-                result = FollowEntriesResponse(**response.json())
-                print(f"请求成功，返回数据条数: {len(result.data) if result.data else 0}")
-                
-                # 处理本地化存储
-                FollowService.save_entries_to_tsv(result.data)
-                
-                return result
-            except requests.HTTPError as e:
-                print(f"HTTP错误: {e}")
-                error_detail = f"HTTP {response.status_code}"
-                try:
-                    error_detail += f": {response.json()}"
-                except:
-                    error_detail += f": {response.text}"
-                raise HTTPException(status_code=response.status_code, detail=error_detail)
-            
-        except requests.RequestException as e:
+            # 使用 aiohttp 替代 requests，因为我们在异步环境中
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f'{FollowService.BASE_URL}/entries',
+                    headers=headers,
+                    json=payload
+                ) as response:
+                    if response.status == 200:
+                        response_json = await response.json()
+                        result = FollowEntriesResponse(**response_json)
+                        print(f"请求成功，返回数据条数: {len(result.data) if result.data else 0}")
+                        
+                        # 处理本地化存储
+                        FollowService.save_entries_to_tsv(result.data)
+                        
+                        return result
+                    else:
+                        error_text = await response.text()
+                        print(f"请求失败: HTTP {response.status}")
+                        print(f"错误响应: {error_text}")
+                        raise HTTPException(
+                            status_code=response.status,
+                            detail=f"HTTP {response.status}: {error_text}"
+                        )
+        
+        except aiohttp.ClientError as e:
+            print(f"请求异常: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Failed to fetch entries: {str(e)}")
         except Exception as e:
+            print(f"其他异常: {str(e)}")
+            import traceback
+            print(f"错误详情:\n{traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=str(e))
     
     @staticmethod
@@ -149,8 +155,15 @@ class FollowService:
                 writer.writerows(all_entries)
     
     @staticmethod
-    async def fetch_entries_with_count(cookie: str, num: int) -> FollowEntriesResponse:
-        print(f"\n=== 开始获取数据，目标数量: {num} ===")
+    async def fetch_entries_with_count(
+        cookie: str, 
+        num: Optional[int] = None,
+        fetch_mode: str = "all"  # 可选值: "all" 或 "tillExistOne"
+    ) -> FollowEntriesResponse:
+        print(f"\n=== 开始获取数据 ===")
+        if num:
+            print(f"目标数量: {num}")
+        print(f"获取模式: {fetch_mode}")
         
         # 第一次调用，不带 publishedAfter
         print("\n1. 第一次请求数据")
@@ -158,13 +171,36 @@ class FollowService:
         all_entries = result.data
         print(f"获取到 {len(all_entries)} 条数据")
         
-        request_count = 1
-        # 如果返回的数量小于请求的数量，继续获取
-        while len(all_entries) < num:
+        # 检查是否需要继续获取数据
+        def should_continue():
             if not all_entries:  # 如果没有更多数据了
                 print("没有更多数据，退出循环")
-                break
+                return False
             
+            if num and len(all_entries) >= num:  # 如果达到目标数量
+                print(f"已达到目标数量 {num}，退出循环")
+                return False
+            
+            # 如果是 tillExistOne 模式，检查最后一批数据是否有已存在的条目
+            if fetch_mode == "tillExistOne":
+                tsv_path = "./output/feed/feed.tsv"
+                if os.path.exists(tsv_path):
+                    with open(tsv_path, 'r', encoding='utf-8') as f:
+                        reader = csv.DictReader(f, delimiter='\t')
+                        existing_ids = {row['id'] for row in reader}
+                        
+                    # 检查最后一批数据是否有重复
+                    latest_batch = result.data if result else []
+                    for entry in latest_batch:
+                        if entry.entries.id in existing_ids:
+                            print(f"发现已存在的条目ID: {entry.entries.id}，退出循环")
+                            return False
+                            
+            return True
+        
+        request_count = 1
+        # 如果需要继续获取
+        while should_continue():
             # 获取最后一条记录的发布时间
             last_published_at = all_entries[-1].entries.publishedAt
             
@@ -178,7 +214,8 @@ class FollowService:
             published_after = valid_published_at or last_published_at
             print(f"\n{request_count + 1}. 发起后续请求")
             print(f"当前数据量: {len(all_entries)}")
-            print(f"目标数据量: {num}")
+            if num:
+                print(f"目标数据量: {num}")
             print(f"使用的时间戳: {published_after}")
             
             # 使用有效的时间进行下一次请求
@@ -195,16 +232,20 @@ class FollowService:
             all_entries.extend(next_result.data)
             request_count += 1
             
+            # 更新用于下一次检查的 result
+            result = next_result
+            
             # 添加请求间隔，避免请求过于频繁
             await asyncio.sleep(1)
         
-        # 截取所需数量的条目
-        all_entries = all_entries[:num]
+        # 如果设置了数量限制，截取所需数量的条目
+        if num:
+            all_entries = all_entries[:num]
         
         print(f"\n=== 数据获取完成 ===")
         print(f"总请求次数: {request_count}")
         print(f"最终获取数据量: {len(all_entries)}")
-        if len(all_entries) < num:
+        if num and len(all_entries) < num:
             print(f"注意: 实际获取数据量少于目标数量，可能已经获取了所有可用数据")
         
         return FollowEntriesResponse(
@@ -286,9 +327,14 @@ class TranscriptionService:
     async def batch_transcribe_downloaded_audio(self) -> Dict[str, List[str]]:
         """批量处理下载的音频文件"""
         audio_dir = "./output/feed/audio"
+        tsv_path = "./output/feed/feed.tsv"
+        
         if not os.path.exists(audio_dir):
             raise HTTPException(status_code=404, detail="Audio directory not found")
-            
+        
+        if not os.path.exists(tsv_path):
+            raise HTTPException(status_code=404, detail="Feed TSV file not found")
+        
         success_files = []
         failed_files = []
         
@@ -298,19 +344,16 @@ class TranscriptionService:
         if not audio_files:
             print("没有找到需要转写的音频文件")
             return {"success": [], "failed": []}
-            
+        
         print(f"\n=== 开始批量转写 {len(audio_files)} 个文件 ===")
+        
+        # 读取TSV文件
+        df = pd.read_csv(tsv_path, sep='\t', dtype={'isDownload': str, 'id': str})
         
         for index, audio_file in enumerate(audio_files, 1):
             audio_path = os.path.join(audio_dir, audio_file)
-            base_name = os.path.splitext(audio_file)[0]
-            txt_output_path = os.path.join(audio_dir, f"{base_name}.txt")
+            file_id = os.path.splitext(audio_file)[0]  # 获取不带扩展名的文件名（即ID）
             
-            # 如果已经存在对应的txt文件，跳过处理
-            if os.path.exists(txt_output_path):
-                print(f"\n[{index}/{len(audio_files)}] {audio_file} 已经转写过，跳过")
-                continue
-                
             print(f"\n[{index}/{len(audio_files)}] 开始处理: {audio_file}")
             
             try:
@@ -320,15 +363,29 @@ class TranscriptionService:
                 # 将简化的JSON转换为文本格式
                 format_transcription_to_text(
                     result['simplified_output_file'],
-                    txt_output_path
+                    result['simplified_output_file'].replace('.json', '.txt')
                 )
                 
-                success_files.append(base_name)
-                print(f"处理完成: {txt_output_path}")
+                # 更新TSV文件中的状态
+                if file_id in df['id'].values:
+                    df.loc[df['id'] == file_id, 'isDownload'] = 'true'
+                    df.to_csv(tsv_path, sep='\t', index=False)
+                    print(f"已更新TSV文件中的状态: {file_id}")
+                else:
+                    print(f"警告: 在TSV文件中未找到ID: {file_id}")
+                
+                # 删除音频文件
+                os.remove(audio_path)
+                print(f"已删除音频文件: {audio_path}")
+                
+                success_files.append(file_id)
+                print(f"处理完成: {result['simplified_output_file']}")
                 
             except Exception as e:
                 print(f"处理失败: {str(e)}")
-                failed_files.append(base_name)
+                import traceback
+                print(f"错误详情:\n{traceback.format_exc()}")
+                failed_files.append(file_id)
         
         print(f"\n=== 批量转写完成 ===")
         print(f"成功: {len(success_files)} 个文件")
@@ -434,4 +491,175 @@ class DownloadService:
         return {
             "success": [str(id) for id in success_files],  # 确保所有 ID 都是字符串
             "failed": [str(id) for id in failed_files]     # 确保所有 ID 都是字符串
-        } 
+        }
+
+class WorkflowService:
+    def __init__(self, transcription_service: TranscriptionService):
+        self.download_service = DownloadService()
+        self.transcription_service = transcription_service
+        
+    async def process_single_file(self, file_id: str, file_path: str) -> Dict[str, bool]:
+        """处理单个文件的下载和转写"""
+        try:
+            # 转写音频
+            result = await self.transcription_service.transcribe_audio(file_path)
+            
+            # 将简化的JSON转换为文本格式
+            simplified_json_path = result['simplified_output_file']
+            txt_output_path = simplified_json_path.replace('.json', '.txt')
+            format_transcription_to_text(simplified_json_path, txt_output_path)
+            print(f"已生成文本文件: {txt_output_path}")
+            
+            # 转写成功后删除音频文件
+            os.remove(file_path)
+            print(f"已删除音频文件: {file_path}")
+            
+            # 更新TSV文件中的下载状态
+            tsv_path = "./output/feed/feed.tsv"
+            if os.path.exists(tsv_path):
+                df = pd.read_csv(tsv_path, sep='\t', dtype={'isDownload': str, 'id': str})
+                df.loc[df['id'] == file_id, 'isDownload'] = 'true'
+                df.to_csv(tsv_path, sep='\t', index=False)
+                print(f"已更新TSV文件中的下载状态: {file_id}")
+            
+            return {"success": True, "file_id": file_id}
+        except Exception as e:
+            print(f"处理文件 {file_id} 失败: {str(e)}")
+            import traceback
+            print(f"错误详情:\n{traceback.format_exc()}")
+            return {"success": False, "file_id": file_id, "error": str(e)}
+    
+    async def download_and_process_file(
+        self, 
+        session, 
+        file_id: str,
+        url: str,
+        title: str
+    ) -> Dict[str, bool]:
+        """下载并立即处理单个文件"""
+        try:
+            output_path = os.path.join(self.download_service.download_dir, f"{file_id}.mp3")
+            
+            print(f"\n开始下载: {title}")
+            print(f"文件ID: {file_id}")
+            print(f"URL: {url}")
+            
+            # 下载文件
+            async with session.get(url) as response:
+                if response.status == 200:
+                    # 使用 aiofiles 进行异步文件操作
+                    async with aiofiles.open(output_path, 'wb') as f:
+                        # 显示下载进度
+                        total_size = int(response.headers.get('content-length', 0))
+                        downloaded_size = 0
+                        start_time = time.time()
+                        
+                        async for chunk in response.content.iter_chunked(8192):
+                            await f.write(chunk)
+                            downloaded_size += len(chunk)
+                            
+                            # 计算下载进度和速度
+                            elapsed_time = time.time() - start_time
+                            if elapsed_time > 0:
+                                speed = downloaded_size / elapsed_time
+                                progress = (downloaded_size / total_size * 100) if total_size > 0 else 0
+                                
+                                # 清除当前行并打印进度
+                                print(f'\r下载进度: {progress:.1f}% | '
+                                      f'速度: {humanize.naturalsize(speed)}/s | '
+                                      f'已下载: {humanize.naturalsize(downloaded_size)} / {humanize.naturalsize(total_size)}',
+                                      end='', flush=True)
+                    
+                    print(f"\n下载完成: {output_path}")
+                    
+                    # 立即处理文件
+                    result = await self.process_single_file(file_id, output_path)
+                    return result
+                else:
+                    print(f"下载失败: HTTP状态码 {response.status}")
+                    return {"success": False, "file_id": file_id, "error": f"HTTP {response.status}"}
+                    
+        except Exception as e:
+            print(f"处理失败: {str(e)}")
+            # 添加更详细的错误信息
+            import traceback
+            print(f"错误详情:\n{traceback.format_exc()}")
+            return {"success": False, "file_id": file_id, "error": str(e)}
+    
+    async def run_complete_workflow(self, cookie: str) -> Dict[str, List[str]]:
+        """运行完整的工作流程"""
+        try:
+            print("\n=== 开始完整工作流程 ===")
+            
+            # 1. 获取所有数据
+            print("\n1. 获取数据")
+            try:
+                result = await FollowService.fetch_entries_with_count(
+                    cookie=cookie,
+                    num=None,
+                    fetch_mode="tillExistOne"
+                )
+                print(f"获取数据完成，共 {len(result.data) if result.data else 0} 条")
+            except Exception as e:
+                print(f"获取数据失败: {str(e)}")
+                import traceback
+                print(f"错误详情:\n{traceback.format_exc()}")
+                raise
+            
+            # 2. 下载并处理文件
+            print("\n2. 开始下载和处理文件")
+            success_files = []
+            failed_files = []
+            
+            # 读取TSV文件获取待处理文件
+            tsv_path = "./output/feed/feed.tsv"
+            if os.path.exists(tsv_path):
+                df = pd.read_csv(tsv_path, sep='\t', dtype={'isDownload': str, 'id': str})
+                
+                # 获取未下载的音频文件
+                pending_files = df[
+                    (df['isDownload'].fillna('false').str.lower() == 'false') &
+                    (df['url'] != 'null') & 
+                    (df['mime_type'].str.contains('audio', na=False))
+                ]
+                
+                if not pending_files.empty:
+                    print(f"\n找到 {len(pending_files)} 个待处理文件")
+                    
+                    async with aiohttp.ClientSession() as session:
+                        for index, row in pending_files.iterrows():
+                            file_id = str(row['id'])
+                            url = row['url']
+                            title = row['title']
+                            
+                            print(f"\n[{index + 1}/{len(pending_files)}] 处理文件")
+                            result = await self.download_and_process_file(
+                                session, file_id, url, title
+                            )
+                            
+                            if result["success"]:
+                                success_files.append(file_id)
+                            else:
+                                failed_files.append(file_id)
+                            
+                            # 添加间隔，避免请求过于频繁
+                            await asyncio.sleep(1)
+                else:
+                    print("没有需要处理的文件")
+            
+            print("\n=== 工作流程完成 ===")
+            print(f"成功: {len(success_files)} 个文件")
+            print(f"失败: {len(failed_files)} 个文件")
+            
+            return {
+                "success": success_files,
+                "failed": failed_files
+            }
+        except Exception as e:
+            print(f"工作流程执行失败: {str(e)}")
+            import traceback
+            print(f"错误详情:\n{traceback.format_exc()}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Workflow execution failed: {str(e)}"
+            ) 
