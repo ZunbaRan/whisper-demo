@@ -1,10 +1,9 @@
-from typing import Optional, List, Any
+from typing import Dict, Optional, List, Any
 import aiohttp
 from fastapi import HTTPException
 import os
 import csv
-from api.models import FollowEntriesResponse
-from utils.file_utils import clean_filename
+from api.models.responses import FollowEntriesResponse, FollowEntry
 import asyncio
 class RssService:
     BASE_URL = 'https://api.follow.is'
@@ -26,7 +25,7 @@ class RssService:
         is_archived: bool = False,
         view: int = 4,
         published_after: Optional[str] = None
-    ) -> FollowEntriesResponse:
+    ) -> List[Dict[str, Any]]:
         try:
             headers = RssService.create_headers(cookie)
             
@@ -51,13 +50,14 @@ class RssService:
                 ) as response:
                     if response.status == 200:
                         response_json = await response.json()
+                        # 在这里打印响应数据，帮助调试
+                        print("API Response:", response_json)
                         result = FollowEntriesResponse(**response_json)
                         print(f"请求成功，返回数据条数: {len(result.data) if result.data else 0}")
                         
                         # 处理本地化存储
-                        RssService.save_entries_to_tsv(result.data)
-                        
-                        return result
+                        new_entries = RssService.save_entries_to_tsv(result.data)
+                        return new_entries
                     else:
                         error_text = await response.text()
                         print(f"请求失败: HTTP {response.status}")
@@ -77,7 +77,7 @@ class RssService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    def save_entries_to_tsv(entries: List[Any]) -> None:
+    def save_entries_to_tsv(entries: List[Any]) -> List[Dict[str, Any]]:
         """将条目保存到TSV文件"""
         output_dir = "./output/feed"
         tsv_path = f"{output_dir}/feed.tsv"
@@ -87,10 +87,12 @@ class RssService:
         
         # 读取现有数据（如果存在）
         existing_entries = {}
+        existing_ids = []
         if os.path.exists(tsv_path):
             with open(tsv_path, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f, delimiter='\t')
-                for row in reader:
+                rows = list(reader)  # 先将所有行读入内存
+                for row in rows:
                     # 清理现有数据中的特殊字符和'null'字符串
                     cleaned_row = {
                         k: (v.strip() if v and v.lower() != 'null' else 'null')
@@ -99,13 +101,14 @@ class RssService:
                     # 确保现有数据有 isDownload 字段
                     if 'isDownload' not in cleaned_row:
                         cleaned_row['isDownload'] = 'false'
-                    existing_entries[clean_filename(cleaned_row['title'])] = cleaned_row
+                    existing_entries[cleaned_row['title']] = cleaned_row
+                    existing_ids.append(cleaned_row['id'])
         
         # 准备新数据
         new_entries = []
         for entry in entries:
             entry_data = entry.entries
-            attachments = getattr(entry_data, 'attachments', [])
+            attachments = entry_data.get('attachments', [])
             attachment = attachments[0] if attachments else {}
             
             # 获取并清理字段值
@@ -117,17 +120,16 @@ class RssService:
                 return cleaned if cleaned else 'null'
             
             new_entry = {
-                'id': clean_value(getattr(entry_data, 'id', None)),
-                'title': clean_value(getattr(entry_data, 'title', None)),
-                'publishedAt': clean_value(getattr(entry_data, 'publishedAt', None)),
-                'url': clean_value(getattr(attachment, 'url', None)),
-                'mime_type': clean_value(getattr(attachment, 'mime_type', None)),
+                'id': clean_value(entry_data.get('id')),
+                'title': clean_value(entry_data.get('title')),
+                'publishedAt': clean_value(entry_data.get('publishedAt')),
+                'url': clean_value(attachment.get('url')),
+                'mime_type': clean_value(attachment.get('mime_type')),
                 'isDownload': 'false'  # 新增数据默认为 false
             }
             
             # 如果条目不存在，添加到新数据列表
-            clean_title = clean_filename(new_entry['title'])
-            if new_entry['title'] != 'null' and clean_title not in existing_entries:
+            if new_entry['title'] != 'null' and new_entry['title'] not in existing_entries and new_entry['id'] not in existing_ids:
                 new_entries.append(new_entry)
         
         # 合并现有数据和新数据
@@ -141,18 +143,25 @@ class RssService:
         
         # 写入所有数据到TSV文件
         if all_entries:
+            # 先清空文件
+            with open(tsv_path, 'w', encoding='utf-8') as f:
+                f.truncate(0)
+                
+            # 重新写入数据
             fieldnames = ['id', 'title', 'publishedAt', 'url', 'mime_type', 'isDownload']
             with open(tsv_path, 'w', encoding='utf-8', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='\t')
                 writer.writeheader()
                 writer.writerows(all_entries)
+        return new_entries
 
     @staticmethod
     async def fetch_entries_with_count(
         cookie: str, 
         num: Optional[int] = None,
-        fetch_mode: str = "all"  # 可选值: "all" 或 "tillExistOne"
-    ) -> FollowEntriesResponse:
+        fetch_mode: str = "tillExistOne",  # 可选值: "all" 或 "tillExistOne"
+        mode: str = "increment"  # 可选值: "increment" 或 "all"
+    ) -> List[Dict[str, Any]]:
         print(f"\n=== 开始获取数据 ===")
         if num:
             print(f"目标数量: {num}")
@@ -160,8 +169,9 @@ class RssService:
         
         # 第一次调用，不带 publishedAfter
         print("\n1. 第一次请求数据")
+        # resule 返回的是增量数据
         result = await RssService.feed_req(cookie)
-        all_entries = result.data
+        all_entries = result
         print(f"获取到 {len(all_entries)} 条数据")
         
         # 检查是否需要继续获取数据
@@ -173,21 +183,24 @@ class RssService:
             if num and len(all_entries) >= num:
                 print(f"已达到目标数量 {num}，退出循环")
                 return False
-            
+             
             # 如果是 tillExistOne 模式，检查最后一批数据是否有已存在的条目
             if fetch_mode == "tillExistOne":
                 tsv_path = "./output/feed/feed.tsv"
                 if os.path.exists(tsv_path):
                     with open(tsv_path, 'r', encoding='utf-8') as f:
                         reader = csv.DictReader(f, delimiter='\t')
-                        existing_titles = {clean_filename(row['title']) for row in reader}
+                        rows = list(reader)  # 先将所有行读入内存
+                        existing_titles = {row['title'] for row in rows}
+                        print(f"已存在的条目标题: {existing_titles}")
                         
                     # 检查最后一批数据是否有重复
-                    latest_batch = result.data if result else []
+                    latest_batch = result if result else []  # 直接使用 result，因为它现在就是列表
                     for entry in latest_batch:
-                        clean_title = clean_filename(getattr(entry.entries, 'title', ''))
-                        if clean_title in existing_titles:
-                            print(f"发现已存在的条目标题: {getattr(entry.entries, 'title', '')}，退出循环")
+                        original_title = entry.get('title', '')  # 注意这里还需要使用 entries
+                        print(f"原始标题: {original_title}")
+                        if original_title in existing_titles:
+                            print(f"发现已存在的条目标题: {original_title}，退出循环")
                             return False
             
             return True
@@ -196,13 +209,13 @@ class RssService:
         # 如果需要继续获取
         while should_continue():
             # 获取最后一条记录的发布时间
-            last_published_at = all_entries[-1].entries.publishedAt
+            last_published_at = all_entries[-1].entries.get('publishedAt')  # 这里也需要修改
             
             # 获取有效的 publishedAt
             valid_published_at = None
             for entry in reversed(all_entries):
-                if entry.entries.publishedAt is not None:
-                    valid_published_at = entry.entries.publishedAt
+                if entry.entries.get('publishedAt') is not None:  # 这里也需要修改
+                    valid_published_at = entry.entries.get('publishedAt')
                     break
             
             published_after = valid_published_at or last_published_at
@@ -218,16 +231,14 @@ class RssService:
                 published_after=published_after
             )
             
-            if not next_result.data:  # 如果没有新数据了
+            if not next_result:  # 如果没有新数据了
                 print("本次请求没有返回数据，退出循环")
                 break
             
-            print(f"本次获取到 {len(next_result.data)} 条新数据")
-            all_entries.extend(next_result.data)
+            print(f"本次获取到 {len(next_result)} 条新数据")
+            all_entries.extend(next_result)
             request_count += 1
             
-            # 更新用于下一次检查的 result
-            result = next_result
             
             # 添加请求间隔，避免请求过于频繁
             await asyncio.sleep(1)
@@ -241,8 +252,14 @@ class RssService:
         print(f"最终获取数据量: {len(all_entries)}")
         if num and len(all_entries) < num:
             print(f"注意: 实际获取数据量少于目标数量，可能已经获取了所有可用数据")
-        
-        return FollowEntriesResponse(
-            code=0,
-            data=all_entries
-        )
+        # 如果 mode 为 all，则返回所有数据
+        if mode == "all":
+            # 读取 feed.tsv 文件
+            tsv_path = "./output/feed/feed.tsv"
+            with open(tsv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f, delimiter='\t')
+                rows = list(reader)
+                return rows
+        # 如果 mode 为 increment，则返回增量数据
+        else:
+            return all_entries

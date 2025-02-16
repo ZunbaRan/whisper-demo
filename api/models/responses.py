@@ -1,4 +1,4 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -30,11 +30,13 @@ class DownloadResponse(BaseModel):
 
 class FollowEntry(BaseModel):
     """Follow 条目模型"""
-    id: str
-    title: str
-    publishedAt: datetime
-    url: Optional[str] = None
-    mime_type: Optional[str] = None
+    read: bool
+    view: int
+    entries: Dict[str, Any]
+    feeds: Dict[str, Any]
+    collections: Optional[Dict[str, Any]]
+    subscriptions: Dict[str, Any]
+    settings: Dict[str, Any]
 
 class FollowEntriesResponse(BaseModel):
     """Follow 条目响应模型"""

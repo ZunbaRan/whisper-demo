@@ -97,9 +97,10 @@ async def batch_transcribe_audio():
     return await transcription_service.batch_transcribe_downloaded_audio()
 
 @app.post("/workflow/complete", response_model=Dict[str, List[str]])
-async def run_complete_workflow(cookie: str):
+async def run_complete_workflow(cookie: str, mode: str = "increment"):
     """运行完整的工作流程：获取数据、下载并处理文件"""
-    return await workflow_service.run_complete_workflow(cookie)
+    return await workflow_service.run_complete_workflow(cookie, mode)
+
 
 if __name__ == "__main__":
     import uvicorn

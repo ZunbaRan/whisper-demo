@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from core.transcriber import Transcriber, TranscriptionConfig
 from utils.json_utils import extract_segments_info, format_transcription_to_text
+from utils.file_utils import clean_filename
 from fastapi import HTTPException
 import time
 
@@ -28,6 +29,12 @@ class TranscriptionService:
             # 处理JSON并创建简化版本
             simplified_output_file = extract_segments_info(output_file)
             
+            # 将简化的JSON转换为文本格式
+            format_transcription_to_text(
+                simplified_output_file,
+                simplified_output_file.replace('.json', '.txt')
+            )
+
             return {
                 "status": "success",
                 "message": "Transcription completed successfully",
@@ -42,7 +49,7 @@ class TranscriptionService:
         """处理单个文件的下载和转写"""
         try:
             # 转写音频
-            result = await self.transcription_service.transcribe_audio(file_path)
+            result = await self.transcribe_audio(file_path)
             
             # 将简化的JSON转换为文本格式
             simplified_json_path = result['simplified_output_file']
@@ -104,12 +111,6 @@ class TranscriptionService:
             try:
                 # 转写音频
                 result = await self.transcribe_audio(audio_path)
-
-                # 将简化的JSON转换为文本格式
-                format_transcription_to_text(
-                    result['simplified_output_file'],
-                    result['simplified_output_file'].replace('.json', '.txt')
-                )
 
                 # 更新TSV文件中的状态
                 matching_rows = df[df['title'].apply(lambda x: clean_filename(x)) == title]
