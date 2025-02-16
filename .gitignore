@@ -8,7 +8,7 @@ venv/
 ENV/
 
 # Project specific
-**/models
+
 output/
 *.log
 
@@ -17,3 +17,6 @@ output/
 .idea/
 whenv/Lib/
 whenv/
+models/models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/
+models/pyannote/
+models/wav2vec2_base/

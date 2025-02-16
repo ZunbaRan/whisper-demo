@@ -1,21 +1,31 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI
+from typing import Dict, List, Optional, Any
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.transcriber import Transcriber, TranscriptionConfig
-from utils.json_utils import extract_segments_info
+from core.transcriber import TranscriptionConfig
 from config.paths import PROJECT_ROOT
-from typing import Optional, List, Dict, Any
-import requests
-from .models import FollowEntriesResponse
-from api.services import (
-    FollowService,
+from services import (
     TranscriptionService,
     DownloadService,
     WorkflowService
 )
+
+# 从本地 models 导入
+from .models import (
+    TranscriptionRequest,
+    TranscriptionResponse,
+    BatchTranscriptionResponse,
+    FollowRequest,
+    FollowCountRequest,
+    FollowEntriesResponse,
+    SingleDownloadResponse,
+    DownloadResponse
+)
+
+# 导入新的服务
+from services.rss_service import RssService
 
 app = FastAPI(title="Whisper Transcription API")
 
@@ -52,72 +62,34 @@ download_service = DownloadService()
 # 初始化工作流服务
 workflow_service = WorkflowService(transcription_service)
 
-class TranscriptionRequest(BaseModel):
-    audio_path: str
+# 初始化 RSS 服务
+rss_service = RssService()
 
-class TranscriptionResponse(BaseModel):
-    status: str
-    message: str
-    transcribe_time: float
-    align_time: float
-    diarize_time: float
-    write_time: float
-    total_time: float
-    output_file: str
-    simplified_output_file: str
+@app.post("/follow/entries/batch", response_model=FollowEntriesResponse)
+async def get_entries_batch(request: FollowCountRequest):
+    """获取指定数量的条目"""
+    return await rss_service.fetch_entries_with_count(
+        cookie=request.cookie,
+        num=request.num,
+        fetch_mode=request.fetch_mode
+    )
 
-class FollowEntry(BaseModel):
-    read: bool
-    view: int
-    entries: Dict[str, Any]
-    feeds: Dict[str, Any]
-    collections: Optional[Dict[str, Any]]
-    subscriptions: Dict[str, Any]
-    settings: Dict[str, Any]
-
-class FollowRequest(BaseModel):
-    cookie: str
-    is_archived: bool = False
-    view: int = 4
-
-class FollowCountRequest(BaseModel):
-    cookie: str
-    num: int = 10
-
-class DownloadResponse(BaseModel):
-    success: List[str]
-    failed: List[str]
-
-class BatchTranscriptionResponse(BaseModel):
-    success: List[str]
-    failed: List[str]
+@app.get("/download/{id}", response_model=SingleDownloadResponse)
+async def download_single_audio(id: str):
+    """下载指定ID的音频文件"""
+    return await download_service.download_single_file(id)
 
 @app.post("/transcribe", response_model=TranscriptionResponse)
 async def transcribe_audio(request: TranscriptionRequest):
     """处理音频转写请求"""
     return await transcription_service.transcribe_audio(request.audio_path)
 
-@app.post("/follow/entries", response_model=FollowEntriesResponse)
-async def get_follow_entries(request: FollowRequest):
-    return await FollowService.feed_req(
-        cookie=request.cookie,
-        is_archived=request.is_archived,
-        view=request.view
-    )
-
-@app.post("/follow/entries/batch", response_model=FollowEntriesResponse)
-async def get_entries_batch(request: FollowCountRequest):
-    """获取指定数量的条目，如果第一次请求不够，会继续请求直到达到指定数量"""
-    return await FollowService.fetch_entries_with_count(
-        cookie=request.cookie,
-        num=request.num,
-        fetch_mode=request.fetch_mode
-    )
 
 @app.get("/download/pending", response_model=DownloadResponse)
 async def download_pending_audio():
     """下载所有未下载的音频文件"""
     return await download_service.download_pending_files()
+
 
 @app.get("/transcribe/batch", response_model=BatchTranscriptionResponse)
 async def batch_transcribe_audio():

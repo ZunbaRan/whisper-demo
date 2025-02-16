@@ -82,3 +82,5 @@ python tests/test_cuda.py
 2. 输出文件会保存在 output 目录下
 3. 服务默认运行在 8000 端口，可以根据需要修改
 4. 建议在生产环境中添加适当的安全措施（如认证）
+
+Invoke-WebRequest -Uri "https://feeds.megaphone.fm/PPLLC8974708240" -OutFile "G:\project\whis-server\whisper-demo\doc\1.xml"
