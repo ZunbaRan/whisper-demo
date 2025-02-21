@@ -3,7 +3,7 @@ from pathlib import Path
 
 def clean_non_txt_files():
     """删除 output 目录下不包含 feed 文件夹的所有非 .txt 文件"""
-    output_dir = Path("../output")
+    output_dir = Path("./output")
     
     if not output_dir.exists():
         print(f"错误: 找不到目录: {output_dir}")
@@ -23,9 +23,8 @@ def clean_non_txt_files():
             
         for file in files:
             file_path = Path(root) / file
-            
-            # 如果不是 .txt 文件，则删除
-            if file_path.suffix.lower() != '.txt':
+            # 如果不是 .txt 文件或者是 _simplified.txt 文件，则删除
+            if file_path.suffix.lower() != '.txt' or file_path.name.endswith('_simplified.txt'):
                 try:
                     print(f"删除文件: {file_path.relative_to(output_dir)}")
                     file_path.unlink()
