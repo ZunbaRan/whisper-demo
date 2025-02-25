@@ -125,7 +125,8 @@ class RssService:
                 'publishedAt': clean_value(entry_data.get('publishedAt')),
                 'url': clean_value(attachment.get('url')),
                 'mime_type': clean_value(attachment.get('mime_type')),
-                'isDownload': 'false'  # 新增数据默认为 false
+                'isDownload': 'false',  # 新增数据默认为 false
+                'isTranscription': 'false'  # 新增字段
             }
             
             # 如果条目不存在，添加到新数据列表
@@ -148,7 +149,7 @@ class RssService:
                 f.truncate(0)
                 
             # 重新写入数据
-            fieldnames = ['id', 'title', 'publishedAt', 'url', 'mime_type', 'isDownload']
+            fieldnames = ['id', 'title', 'publishedAt', 'url', 'mime_type', 'isDownload', 'isTranscription']
             with open(tsv_path, 'w', encoding='utf-8', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='\t')
                 writer.writeheader()

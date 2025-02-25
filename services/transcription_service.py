@@ -2,7 +2,7 @@ from typing import Dict, Any, List
 import os
 import pandas as pd
 from core.transcriber import Transcriber, TranscriptionConfig
-from utils.json_utils import extract_segments_info, format_transcription_to_text
+from utils.json_utils import extract_segments_info, format_transcription_to_text, format_transcription_to_text_no_speaker
 from utils.file_utils import clean_filename
 from fastapi import HTTPException
 import time
@@ -27,12 +27,21 @@ class TranscriptionService:
             output_file = os.path.join("output", f"{base_name}.json")
             
             # 处理JSON并创建简化版本
-            simplified_output_file = extract_segments_info(output_file)
+            # simplified_output_file = extract_segments_info(output_file)
             
             # 将简化的JSON转换为文本格式
-            format_transcription_to_text(
-                simplified_output_file,
-                simplified_output_file.replace('.json', '.txt')
+            # txt_output_file = simplified_output_file.replace('_simplified.json', '.txt')
+            # format_transcription_to_text(
+            #     simplified_output_file,
+            #     txt_output_file
+            # )
+
+            filename = os.path.basename(output_file)
+            base_name = os.path.splitext(filename)[0]
+            simplified_output_file = os.path.join("output", f"{base_name}_simple.txt")
+            format_transcription_to_text_no_speaker(
+                output_file,
+                simplified_output_file
             )
 
             return {
@@ -46,7 +55,7 @@ class TranscriptionService:
             raise HTTPException(status_code=500, detail=str(e))
 
     async def process_single_file(self, title: str, file_path: str) -> Dict[str, bool]:
-        """处理单个文件的下载和转写"""
+        """处理单个文件的转写"""
         try:
             # 转写音频
             result = await self.transcribe_audio(file_path)
@@ -61,13 +70,17 @@ class TranscriptionService:
             os.remove(file_path)
             print(f"已删除音频文件: {file_path}")
             
-            # 更新TSV文件中的下载状态
+            # 更新TSV文件中的转写状态
             tsv_path = "./output/feed/feed.tsv"
             if os.path.exists(tsv_path):
-                df = pd.read_csv(tsv_path, sep='\t', dtype={'isDownload': str, 'title': str})
-                df.loc[df['title'] == title, 'isDownload'] = 'true'
+                df = pd.read_csv(tsv_path, sep='\t', dtype={
+                    'isDownload': str, 
+                    'isTranscription': str, 
+                    'title': str
+                })
+                df.loc[df['title'] == title, 'isTranscription'] = 'true'
                 df.to_csv(tsv_path, sep='\t', index=False)
-                print(f"已更新TSV文件中的下载状态: {title}")
+                print(f"已更新TSV文件中的转写状态: {title}")
             
             return {"success": True, "title": title}
         except Exception as e:
@@ -100,7 +113,11 @@ class TranscriptionService:
         print(f"\n=== 开始批量转写 {len(audio_files)} 个文件 ===")
 
         # 读取TSV文件
-        df = pd.read_csv(tsv_path, sep='\t', dtype={'isDownload': str, 'title': str})
+        df = pd.read_csv(tsv_path, sep='\t', dtype={
+            'isDownload': str, 
+            'isTranscription': str, 
+            'title': str
+        })
 
         for index, audio_file in enumerate(audio_files, 1):
             audio_path = os.path.join(audio_dir, audio_file)
@@ -116,9 +133,9 @@ class TranscriptionService:
                 matching_rows = df[df['title'].apply(lambda x: clean_filename(x)) == title]
                 if not matching_rows.empty:
                     original_title = matching_rows.iloc[0]['title']
-                    df.loc[df['title'] == original_title, 'isDownload'] = 'true'
+                    df.loc[df['title'] == original_title, 'isTranscription'] = 'true'
                     df.to_csv(tsv_path, sep='\t', index=False)
-                    print(f"已更新TSV文件中的状态: {original_title}")
+                    print(f"已更新TSV文件中的转写状态: {original_title}")
                 else:
                     print(f"警告: 在TSV文件中未找到标题: {title}")
 
@@ -160,12 +177,12 @@ class TranscriptionService:
         align_time = time.time() - start_time
         print(f"对齐耗时: {align_time:.2f}秒")
 
-        # 说话人分离步骤
-        print("\n=== 开始分离说话人 ===")
-        start_time = time.time()
-        transcriptions = self.transcriber.diarize_transcriptions(transcriptions)
-        diarize_time = time.time() - start_time
-        print(f"分离耗时: {diarize_time:.2f}秒")
+        # # 说话人分离步骤
+        # print("\n=== 开始分离说话人 ===")
+        # start_time = time.time()
+        # transcriptions = self.transcriber.diarize_transcriptions(transcriptions)
+        # diarize_time = time.time() - start_time
+        # print(f"分离耗时: {diarize_time:.2f}秒")
 
         # 写入步骤
         start_time = time.time()
@@ -173,12 +190,12 @@ class TranscriptionService:
         write_time = time.time() - start_time
 
         # 计算总时间
-        total_time = transcribe_time + align_time + diarize_time + write_time
+        # total_time = transcribe_time + align_time + diarize_time + write_time
         
         return {
             "transcribe_time": round(transcribe_time, 2),
-            "align_time": round(align_time, 2),
-            "diarize_time": round(diarize_time, 2),
+            # "align_time": round(align_time, 2),
+            # "diarize_time": round(diarize_time, 2),
             "write_time": round(write_time, 2),
-            "total_time": round(total_time, 2)
+            # "total_time": round(total_time, 2)
         }
