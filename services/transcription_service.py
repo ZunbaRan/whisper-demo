@@ -6,6 +6,7 @@ from utils.json_utils import extract_segments_info, format_transcription_to_text
 from utils.file_utils import clean_filename
 from fastapi import HTTPException
 import time
+from services.db_service import DBService
 
 class TranscriptionService:
     def __init__(self, config: TranscriptionConfig):
@@ -54,40 +55,37 @@ class TranscriptionService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-    async def process_single_file(self, title: str, file_path: str) -> Dict[str, bool]:
-        """处理单个文件的转写"""
+    async def process_single_file(self, entry: Dict[str, Any], file_path: str) -> Dict[str, bool]:
+        """处理单个文件的转写
+        
+        Args:
+            entry: 包含条目信息的字典，至少包含 id 和 title
+            file_path: 音频文件路径
+        """
         try:
+            title = entry["title"]
+            entry_id = entry["id"]
+            
+            print(f"开始转写: {title}")
+            
             # 转写音频
             result = await self.transcribe_audio(file_path)
-            
-            # 将简化的JSON转换为文本格式
-            simplified_json_path = result['simplified_output_file']
-            txt_output_path = simplified_json_path.replace('.json', '.txt')
-            format_transcription_to_text(simplified_json_path, txt_output_path)
-            print(f"已生成文本文件: {txt_output_path}")
             
             # 转写成功后删除音频文件
             os.remove(file_path)
             print(f"已删除音频文件: {file_path}")
             
-            # 更新TSV文件中的转写状态
-            tsv_path = "./output/feed/feed.tsv"
-            if os.path.exists(tsv_path):
-                df = pd.read_csv(tsv_path, sep='\t', dtype={
-                    'isDownload': str, 
-                    'isTranscription': str, 
-                    'title': str
-                })
-                df.loc[df['title'] == title, 'isTranscription'] = 'true'
-                df.to_csv(tsv_path, sep='\t', index=False)
-                print(f"已更新TSV文件中的转写状态: {title}")
+            # 直接使用传入的 entry_id 更新数据库
+            db_service = DBService()
+            db_service.update_transcription_status(entry_id, True)
+            print(f"已更新数据库中的转写状态: {title} (ID: {entry_id})")
             
-            return {"success": True, "title": title}
+            return {"success": True, "title": title, "id": entry_id}
         except Exception as e:
-            print(f"处理文件 {title} 失败: {str(e)}")
+            print(f"处理文件 {entry['title']} 失败: {str(e)}")
             import traceback
             print(f"错误详情:\n{traceback.format_exc()}")
-            return {"success": False, "title": title, "error": str(e)}
+            return {"success": False, "title": entry['title'], "id": entry['id'], "error": str(e)}
 
     async def batch_transcribe_downloaded_audio(self) -> Dict[str, List[str]]:
         """批量处理下载的音频文件"""

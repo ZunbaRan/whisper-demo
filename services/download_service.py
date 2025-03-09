@@ -11,6 +11,7 @@ import asyncio
 import subprocess
 import json
 import tempfile
+from services.db_service import DBService
 
 class DownloadService:
     def __init__(self):
@@ -216,30 +217,24 @@ $response = Invoke-WebRequest -UseBasicParsing -Uri "{final_url}" -WebSession $s
 
     async def download_single_file(self, target_id: str) -> Dict[str, Any]:
         """下载指定ID的音频文件"""
-        tsv_path = "./output/feed/feed.tsv"
-        if not os.path.exists(tsv_path):
-            raise HTTPException(status_code=404, detail="Feed TSV file not found")
-        
-        # 读取TSV文件
-        df = pd.read_csv(tsv_path, sep='\t', dtype={'id': str, 'isDownload': str, 'title': str})
+        db_service = DBService()
         
         # 查找指定ID的记录
-        target_row = df[df['id'] == target_id]
-        if target_row.empty:
+        entry = db_service.get_entry_by_id(target_id)
+        if not entry:
             raise HTTPException(status_code=404, detail=f"Entry with ID {target_id} not found")
         
         # 获取文件信息
-        row = target_row.iloc[0]
-        title = row['title']
-        url = row['url']
-        mime_type = row['mime_type']
+        title = entry['title']
+        url = entry['url']
+        mime_type = entry['mime_type']
         
         # 检查是否是音频文件
-        if not pd.isna(mime_type) and 'audio' not in mime_type.lower():
+        if mime_type != 'null' and 'audio' not in mime_type.lower():
             raise HTTPException(status_code=400, detail=f"File with ID {target_id} is not an audio file")
         
         # 检查URL是否有效
-        if pd.isna(url) or url.lower() == 'null':
+        if url == 'null':
             raise HTTPException(status_code=400, detail=f"No valid URL found for ID {target_id}")
         
         print(f"\n=== 开始下载单个文件 ===")
@@ -259,9 +254,8 @@ $response = Invoke-WebRequest -UseBasicParsing -Uri "{final_url}" -WebSession $s
                 result = await self.download_file(url, output_path)
                 
                 if result.get("success", False):
-                    # 更新TSV文件中的isDownload状态
-                    df.loc[df['id'] == target_id, 'isDownload'] = 'true'
-                    df.to_csv(tsv_path, sep='\t', index=False)
+                    # 更新数据库中的下载状态
+                    db_service.update_download_status(target_id, True)
                     
                     return {
                         "success": True,
@@ -305,9 +299,8 @@ $response = Invoke-WebRequest -UseBasicParsing -Uri "{final_url}" -WebSession $s
                             
                             print(f"\n下载完成: {output_path}")
                             
-                            # 更新TSV文件中的isDownload状态
-                            df.loc[df['id'] == target_id, 'isDownload'] = 'true'
-                            df.to_csv(tsv_path, sep='\t', index=False)
+                            # 更新数据库中的下载状态
+                            db_service.update_download_status(target_id, True)
                             
                             return {
                                 "success": True,
