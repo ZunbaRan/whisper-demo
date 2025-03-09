@@ -13,3 +13,6 @@ aiohttp
 aiofiles
 humanize
 pyannote.audio>=3.0.0
+beautifulsoup4>=4.9.3
+crawl4ai
+selenium
