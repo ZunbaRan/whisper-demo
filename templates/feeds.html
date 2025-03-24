@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}RSS 音频处理系统 - Feed 列表{% endblock %}
+
+{% block content %}
+<h2>Feed 列表</h2>
+
+<div class="row" id="feeds-container">
+    <div class="col-12 text-center">
+        <p>加载中...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const stats = await callApi('/db/stats');
+        const feeds = stats.feeds || [];
+        
+        const feedsContainer = document.getElementById('feeds-container');
+        
+        if (feeds.length === 0) {
+            feedsContainer.innerHTML = '<div class="col-12 text-center"><p>没有找到 Feed</p></div>';
+            return;
+        }
+        
+        let html = '';
+        feeds.forEach(feed => {
+            html += `
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">${feed.title}</h5>
+                            <p class="card-text">条目数: ${feed.count}</p>
+                        </div>
+                        <div class="card-footer">
+                            <div class="btn-group w-100">
+                                <button class="btn btn-primary" onclick="processFeed('${feed.title}', 'process')">获取数据</button>
+                                <button class="btn btn-success" onclick="processFeed('${feed.title}', 'download')">下载</button>
+                                <button class="btn btn-info" onclick="processFeed('${feed.title}', 'transcribe')">转写</button>
+                                <button class="btn btn-warning" onclick="processFeed('${feed.title}', 'workflow')">完整处理</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        feedsContainer.innerHTML = html;
+    } catch (error) {
+        console.error('加载 Feed 失败:', error);
+        document.getElementById('feeds-container').innerHTML = `
+            <div class="col-12 text-center">
+                <p class="text-danger">加载失败: ${error.message}</p>
+            </div>
+        `;
+    }
+});
+
+async function processFeed(feedName, action) {
+    if (!confirm(`确定要${action === 'process' ? '获取' : action === 'download' ? '下载' : action === 'transcribe' ? '转写' : '完整处理'} ${feedName} 的数据吗？`)) {
+        return;
+    }
+    
+    try {
+        let url;
+        switch (action) {
+            case 'process':
+                url = `/rss/process/${feedName}`;
+                break;
+            case 'download':
+                url = `/rss/download/${feedName}`;
+                break;
+            case 'transcribe':
+                url = `/rss/transcribe/${feedName}`;
+                break;
+            case 'workflow':
+                url = `/rss/workflow/${feedName}`;
+                break;
+            default:
+                throw new Error('未知操作');
+        }
+        
+        const result = await callApi(url);
+        
+        let message = '处理成功';
+        if (result.success) {
+            message += `\n成功: ${result.success.length} 个文件`;
+        }
+        if (result.failed) {
+            message += `\n失败: ${result.failed.length} 个文件`;
+        }
+        
+        alert(message);
+        
+        // 刷新页面
+        location.reload();
+    } catch (error) {
+        console.error('处理 Feed 失败:', error);
+        alert(`处理失败: ${error.message}`);
+    }
+}
+{% endblock %} 

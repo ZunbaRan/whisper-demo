@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}RSS 音频处理系统 - 条目列表{% endblock %}
+
+{% block content %}
+<h2>条目列表</h2>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="input-group">
+            <input type="text" id="search-input" class="form-control" placeholder="搜索条目...">
+            <button class="btn btn-outline-secondary" type="button" id="search-button">搜索</button>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <select id="feed-filter" class="form-select">
+            <option value="">所有 Feed</option>
+            <!-- Feed 选项将通过 JavaScript 动态添加 -->
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select id="status-filter" class="form-select">
+            <option value="">所有状态</option>
+            <option value="pending">待处理</option>
+            <option value="downloaded">已下载</option>
+            <option value="transcribed">已转写</option>
+        </select>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>标题 <i class="fas fa-info-circle" data-bs-toggle="tooltip" title="鼠标悬停可查看完整内容"></i></th>
+                <th>摘要 <i class="fas fa-info-circle" data-bs-toggle="tooltip" title="鼠标悬停可查看完整内容"></i></th>
+                <th>描述 <i class="fas fa-info-circle" data-bs-toggle="tooltip" title="鼠标悬停可查看完整内容"></i></th>
+                <th>发布日期</th>
+                <th>Feed</th>
+                <th>下载</th>
+                <th>转写</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="entries-table">
+            <tr>
+                <td colspan="9" class="text-center">加载中...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<nav>
+    <ul class="pagination justify-content-center" id="pagination">
+        <!-- 分页将通过 JavaScript 动态添加 -->
+    </ul>
+</nav>
+
+<!-- 处理进度模态框 -->
+<div class="modal fade" id="progressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">处理进度</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="progress-message">正在处理...</div>
+                <div class="progress mt-3">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div id="progress-details" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="copyToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">通知</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            已复制内容到剪贴板
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+let currentPage = 1;
+const pageSize = 20;
+let totalEntries = 0;
+let feeds = [];
+let progressModal;
+
+document.addEventListener('DOMContentLoaded', async function() {
+    // 初始化模态框
+    progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
+    
+    // 加载 Feed 列表
+    await loadFeeds();
+    
+    // 加载条目
+    await loadEntries(1);
+    
+    // 添加事件监听器
+    document.getElementById('search-button').addEventListener('click', function() {
+        loadEntries(1);
+    });
+    
+    document.getElementById('search-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            loadEntries(1);
+        }
+    });
+    
+    document.getElementById('feed-filter').addEventListener('change', function() {
+        loadEntries(1);
+    });
+    
+    document.getElementById('status-filter').addEventListener('change', function() {
+        loadEntries(1);
+    });
+});
+
+async function loadFeeds() {
+    try {
+        const stats = await callApi('/db/stats');
+        feeds = stats.feeds || [];
+        
+        const feedFilter = document.getElementById('feed-filter');
+        feeds.forEach(feed => {
+            const option = document.createElement('option');
+            option.value = feed.title;
+            option.textContent = `${feed.title} (${feed.count})`;
+            feedFilter.appendChild(option);
+        });
+    } catch (error) {
+        console.error('加载 Feed 失败:', error);
+    }
+}
+
+async function loadEntries(page = 1) {
+    try {
+        const limit = 20;
+        const offset = (page - 1) * limit;
+        const response = await callApi(`/db/entries?limit=${limit}&offset=${offset}&count=true`);
+        const entries = response.entries;
+        const totalCount = response.total;
+        
+        const tableBody = document.getElementById('entries-table');
+        
+        if (entries.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="9" class="text-center">没有找到条目</td></tr>';
+            return;
+        }
+        
+        let html = '';
+        entries.forEach(entry => {
+            // 处理可能为空的字段
+            const title = entry.title || '';
+            const summary = entry.summary || '';
+            const description = entry.description || '';
+            const feed_title = entry.feed_title || '';
+            
+            // 创建可复制的单元格内容
+            const createCopyableCell = (content, maxLength = 100) => {
+                const shortContent = content.length > maxLength ? content.substring(0, maxLength) + '...' : content;
+                return `
+                    <td class="copyable-cell" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        data-bs-html="true" 
+                        data-bs-trigger="hover"
+                        title="${content.replace(/"/g, '&quot;')}">
+                        ${shortContent}
+                    </td>
+                `;
+            };
+            
+            html += `
+                <tr>
+                    <td>${entry.id}</td>
+                    ${createCopyableCell(title)}
+                    ${createCopyableCell(summary)}
+                    ${createCopyableCell(description)}
+                    <td>${entry.publishedAt || ''}</td>
+                    <td>${feed_title}</td>
+                    <td>
+                        <span class="badge ${entry.isDownload === 'true' ? 'badge-success' : 'badge-danger'}">
+                            ${entry.isDownload === 'true' ? '已下载' : '未下载'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${entry.isTranscription === 'true' ? 'badge-success' : 'badge-danger'}">
+                            ${entry.isTranscription === 'true' ? '已转写' : '未转写'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-primary" onclick="downloadEntry('${entry.id}')">下载</button>
+                            <button class="btn btn-sm btn-info" onclick="viewEntry('${entry.id}')">查看</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tableBody.innerHTML = html;
+        
+        // 初始化工具提示 (Bootstrap 5)
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                trigger: 'hover',
+                html: true,
+                delay: { show: 200, hide: 2000 },  // 增加隐藏延迟到 2000ms (2秒)
+                template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner" style="max-width: 1000px;"></div></div>'
+            });
+        });
+        
+        // 更新分页，使用返回的总条目数
+        updatePaginationWithTotal(page, totalCount);
+    } catch (error) {
+        console.error('加载条目失败:', error);
+        document.getElementById('entries-table').innerHTML = `
+            <tr><td colspan="9" class="text-center text-danger">加载失败: ${error.message}</td></tr>
+        `;
+    }
+}
+
+function updatePaginationWithTotal(page, totalCount) {
+    currentPage = page;
+    renderPaginationWithTotal(totalCount);
+}
+
+function renderPaginationWithTotal(totalCount) {
+    const pagination = document.getElementById('pagination');
+    
+    let html = '';
+    
+    // 上一页按钮
+    html += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="loadEntries(${currentPage - 1}); return false;">上一页</a>
+        </li>
+    `;
+    
+    // 当前页码
+    html += `
+        <li class="page-item active">
+            <a class="page-link" href="#">${currentPage}</a>
+        </li>
+    `;
+    
+    // 下一页按钮
+    html += `
+        <li class="page-item ${currentPage === Math.ceil(totalCount / pageSize) ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="loadEntries(${currentPage + 1}); return false;">下一页</a>
+        </li>
+    `;
+    
+    pagination.innerHTML = html;
+}
+
+// 复制到剪贴板函数
+function copyToClipboard(text, element) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    
+    // 使用 Bootstrap Toast
+    const toastEl = document.getElementById('copyToast');
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('zh-CN');
+    } catch (e) {
+        return dateString;
+    }
+}
+{% endblock %}
+
+{% block styles %}
+<style>
+    .copyable-cell {
+        cursor: default;  /* 改为默认光标，不再显示为可点击 */
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .copyable-cell:hover {
+        background-color: #f8f9fa;
+    }
+    
+    /* 使用更具体的选择器并增加 !important 来确保覆盖 */
+    .tooltip .tooltip-inner,
+    body .tooltip-inner,
+    .tooltip > .tooltip-inner {
+        max-width: 1000px !important;  /* 增加宽度到 1000px */
+        text-align: left !important;
+        word-wrap: break-word !important;
+        white-space: pre-wrap !important;
+        width: auto !important;
+    }
+    
+    /* 添加内联样式到工具提示初始化代码中 */
+</style>
+{% endblock %} 

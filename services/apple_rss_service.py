@@ -1,18 +1,14 @@
 import os
-import yaml
-import aiohttp
-import asyncio
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Any, Optional
 import uuid
 from datetime import datetime
-from fastapi import HTTPException
+import requests
 from services.db_service import DBService
 
 class AppleRssService:
-    def __init__(self, config_path: str = "./config/appleRsslink.yml"):
+    def __init__(self):
         """初始化 Apple RSS 服务"""
-        self.config_path = config_path
         self.db_service = DBService()
         self.namespaces = {
             'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd',
@@ -22,67 +18,132 @@ class AppleRssService:
             'googleplay': 'http://www.google.com/schemas/play-podcasts/1.0'
         }
     
-    def load_config(self) -> List[Dict[str, Dict[str, str]]]:
-        """加载 YAML 配置文件"""
+    async def process_single_feed(self, feed_name: str) -> Dict[str, Any]:
+        """处理单个 RSS 源"""
         try:
-            if not os.path.exists(self.config_path):
-                print(f"配置文件不存在: {self.config_path}")
-                return []
+            print(f"开始处理 RSS 源: {feed_name}")
             
-            with open(self.config_path, 'r', encoding='utf-8') as file:
-                config = yaml.safe_load(file)
-                
-            if not config:
-                print("配置文件为空")
-                return []
-                
-            return config
-        except Exception as e:
-            print(f"加载配置文件失败: {str(e)}")
-            import traceback
-            print(traceback.format_exc())
-            return []
-    
-    async def download_rss_xml(self, url: str) -> Optional[str]:
-        """下载 RSS XML 内容"""
-        try:
-            print(f"开始下载 RSS: {url}")
+            # 从数据库中获取 feed
+            db_service = DBService()
+            feeds = db_service.get_all_rss_feeds()
+            print(f"数据库中找到 {len(feeds)} 个 RSS 源")
             
+            feed_url = None
+            for feed in feeds:
+                if feed['title'] == feed_name:
+                    feed_url = feed['url']
+                    print(f"找到匹配的 RSS 源: {feed_name}, URL: {feed_url}")
+                    break
+            
+            if not feed_url:
+                print(f"未找到 RSS 源: {feed_name}")
+                return {
+                    "status": "error",
+                    "message": f"未找到 RSS 源: {feed_name}"
+                }
+            
+            # 获取 RSS 内容
+            print(f"开始获取 RSS 内容: {feed_url}")
+            import aiohttp
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        xml_content = await response.text()
-                        print(f"成功下载 RSS，内容长度: {len(xml_content)} 字符")
-                        return xml_content
-                    else:
-                        print(f"下载 RSS 失败: HTTP {response.status}")
-                        return None
+                try:
+                    async with session.get(feed_url, timeout=30) as response:
+                        print(f"RSS 请求状态码: {response.status}")
+                        if response.status != 200:
+                            return {
+                                "status": "error",
+                                "message": f"获取 RSS 内容失败: {response.status}"
+                            }
+                        
+                        content = await response.text()
+                        print(f"获取到 RSS 内容，长度: {len(content)} 字符")
+                        print(f"RSS 内容前 100 个字符: {content[:100]}")
+                except Exception as e:
+                    print(f"获取 RSS 内容时发生异常: {str(e)}")
+                    import traceback
+                    print(traceback.format_exc())
+                    return {
+                        "status": "error",
+                        "message": f"获取 RSS 内容失败: {str(e)}"
+                    }
+            
+            # 解析 RSS 内容
+            try:
+                print(f"开始解析 RSS 内容...")
+                entries = self.parse_rss_xml(content, feed_name)
+                print(f"解析完成，找到 {len(entries)} 个条目")
+            except Exception as e:
+                print(f"解析 RSS 内容失败: {str(e)}")
+                import traceback
+                print(traceback.format_exc())
+                return {
+                    "status": "error",
+                    "message": f"解析 RSS 内容失败: {str(e)}"
+                }
+            
+            # 保存到数据库
+            print(f"开始保存 {len(entries)} 个条目到数据库")
+            saved_entries = self.save_entries_to_db(entries)
+            print(f"成功保存 {len(saved_entries)} 个条目到数据库")
+            
+            return {
+                "status": "success",
+                "feed": feed_name,
+                "entries": saved_entries
+            }
         except Exception as e:
-            print(f"下载 RSS 异常: {str(e)}")
+            print(f"处理 RSS 源失败: {str(e)}")
             import traceback
             print(traceback.format_exc())
-            return None
+            return {
+                "status": "error",
+                "message": str(e)
+            }
     
     def parse_rss_xml(self, xml_content: str, feed_title: str) -> List[Dict[str, Any]]:
         """解析 RSS XML 内容"""
         try:
             print(f"开始解析 RSS 内容: {feed_title}")
             
+            # 如果 xml_content 是字节，转换为字符串
+            if isinstance(xml_content, bytes):
+                xml_content = xml_content.decode('utf-8')
+                print("将字节内容转换为字符串")
+            
             # 解析 XML
-            root = ET.fromstring(xml_content)
+            try:
+                print("开始解析 XML...")
+                root = ET.fromstring(xml_content)
+                print("XML 解析成功")
+            except ET.ParseError as e:
+                print(f"XML 解析错误: {str(e)}")
+                print(f"XML 内容前 100 个字符: {xml_content[:100]}")
+                # 尝试使用 lxml 解析，它更宽容
+                try:
+                    print("尝试使用 lxml 解析...")
+                    from lxml import etree
+                    root = etree.fromstring(xml_content.encode('utf-8'))
+                    print("使用 lxml 解析成功")
+                except Exception as lxml_error:
+                    print(f"lxml 解析也失败: {str(lxml_error)}")
+                    raise e
             
             # 获取所有 item 元素
+            print("查找 item 元素...")
             items = root.findall('.//item')
             print(f"找到 {len(items)} 个节目条目")
             
             entries = []
-            for item in items:
+            for i, item in enumerate(items):
                 try:
+                    print(f"解析第 {i+1} 个条目...")
                     # 提取基本信息
                     title = self._get_element_text(item, './title')
                     pub_date = self._get_element_text(item, './pubDate')
+                    print(f"条目标题: {title}, 发布日期: {pub_date}")
                     
-                    # 提取 iTunes 特定信息
+                    # 提取 description 和 iTunes 特定信息
+                    description = self._get_element_text(item, './description')
                     summary = self._get_element_text(item, './itunes:summary', self.namespaces)
                     image = self._get_element_attribute(item, './itunes:image', 'href', self.namespaces)
                     
@@ -90,15 +151,20 @@ class AppleRssService:
                     enclosure = item.find('./enclosure')
                     enclosure_url = enclosure.get('url') if enclosure is not None else None
                     enclosure_type = enclosure.get('type') if enclosure is not None else None
+                    print(f"音频 URL: {enclosure_url}, 类型: {enclosure_type}")
                     
                     # 提取 GUID 作为唯一标识符
                     guid = self._get_element_text(item, './guid')
                     if not guid:
                         # 如果没有 GUID，生成一个基于标题和发布日期的唯一 ID
                         guid = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{title}_{pub_date}"))
+                        print(f"生成 GUID: {guid}")
+                    else:
+                        print(f"使用原始 GUID: {guid}")
                     
                     # 格式化日期
                     formatted_date = self._format_pub_date(pub_date)
+                    print(f"格式化日期: {formatted_date}")
                     
                     # 创建条目
                     entry = {
@@ -108,6 +174,7 @@ class AppleRssService:
                         'url': enclosure_url,
                         'mime_type': enclosure_type,
                         'summary': summary,
+                        'description': description,
                         'image': image,
                         'feed_title': feed_title,
                         'isDownload': 'false',
@@ -115,8 +182,11 @@ class AppleRssService:
                     }
                     
                     entries.append(entry)
+                    print(f"第 {i+1} 个条目解析完成")
                 except Exception as e:
-                    print(f"解析条目失败: {str(e)}")
+                    print(f"解析第 {i+1} 个条目失败: {str(e)}")
+                    import traceback
+                    print(traceback.format_exc())
                     continue
             
             print(f"成功解析 {len(entries)} 个条目")
@@ -155,232 +225,104 @@ class AppleRssService:
             for fmt in formats:
                 try:
                     dt = datetime.strptime(pub_date, fmt)
-                    return dt.isoformat()
+                    return dt.strftime('%Y-%m-%d %H:%M:%S')
                 except ValueError:
                     continue
             
-            # 如果所有格式都失败，返回原始字符串
-            return pub_date
-        except Exception:
+            # 如果所有格式都失败，尝试更宽松的解析
+            import dateutil.parser
+            dt = dateutil.parser.parse(pub_date)
+            return dt.strftime('%Y-%m-%d %H:%M:%S')
+        except Exception as e:
+            print(f"日期解析失败 ({pub_date}): {str(e)}")
             return pub_date
     
     def save_entries_to_db(self, entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """保存条目到数据库"""
-        if not entries:
-            return []
+        saved_entries = []
+        for entry in entries:
+            try:
+                # 尝试保存条目
+                self.db_service.save_entry(entry)
+                saved_entries.append(entry)
+            except Exception as e:
+                print(f"保存条目失败 ({entry.get('title', 'Unknown')}): {str(e)}")
+                import traceback
+                print(traceback.format_exc())
         
-        # 确保数据库表结构支持新字段
-        self._ensure_db_structure()
-        
-        # 使用专门的方法保存 RSS 条目
-        return self.db_service.save_rss_entries(entries)
-    
-    def _ensure_db_structure(self):
-        """确保数据库表结构支持 RSS 条目的所有字段"""
-        try:
-            with self.db_service.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                # 检查是否存在 summary, image, feed_title 列
-                cursor.execute("PRAGMA table_info(entries)")
-                columns = {row['name'] for row in cursor.fetchall()}
-                
-                # 添加缺失的列
-                if 'summary' not in columns:
-                    cursor.execute("ALTER TABLE entries ADD COLUMN summary TEXT")
-                
-                if 'image' not in columns:
-                    cursor.execute("ALTER TABLE entries ADD COLUMN image TEXT")
-                
-                if 'feed_title' not in columns:
-                    cursor.execute("ALTER TABLE entries ADD COLUMN feed_title TEXT")
-                
-                conn.commit()
-        except Exception as e:
-            print(f"确保数据库结构失败: {str(e)}")
-            import traceback
-            print(traceback.format_exc())
-    
-    async def process_all_feeds(self) -> Dict[str, Any]:
-        """处理所有 RSS 源"""
-        config = self.load_config()
-        if not config:
-            raise HTTPException(status_code=400, detail="No RSS feeds configured")
-        
-        results = {
-            "total_feeds": len(config),
-            "processed_feeds": 0,
-            "total_entries": 0,
-            "new_entries": 0,
-            "feeds": []
-        }
-        
-        for feed_config in config:
-            for feed_id, feed_info in feed_config.items():
-                feed_title = feed_info.get('title', 'Unknown')
-                feed_url = feed_info.get('url')
-                
-                if not feed_url:
-                    print(f"跳过没有 URL 的源: {feed_id}")
-                    continue
-                
-                print(f"\n=== 处理 RSS 源: {feed_title} ===")
-                
-                # 下载 XML
-                xml_content = await self.download_rss_xml(feed_url)
-                if not xml_content:
-                    print(f"无法下载 RSS 内容: {feed_url}")
-                    results["feeds"].append({
-                        "id": feed_id,
-                        "title": feed_title,
-                        "status": "failed",
-                        "error": "Failed to download RSS content"
-                    })
-                    continue
-                
-                # 解析 XML
-                entries = self.parse_rss_xml(xml_content, feed_title)
-                
-                # 保存到数据库
-                new_entries = self.save_entries_to_db(entries)
-                
-                feed_result = {
-                    "id": feed_id,
-                    "title": feed_title,
-                    "status": "success",
-                    "total_entries": len(entries),
-                    "new_entries": len(new_entries)
-                }
-                
-                results["feeds"].append(feed_result)
-                results["processed_feeds"] += 1
-                results["total_entries"] += len(entries)
-                results["new_entries"] += len(new_entries)
-                
-                print(f"处理完成: {feed_title}")
-                print(f"总条目数: {len(entries)}")
-                print(f"新条目数: {len(new_entries)}")
-        
-        print("\n=== 所有 RSS 源处理完成 ===")
-        print(f"处理的源数量: {results['processed_feeds']}")
-        print(f"总条目数: {results['total_entries']}")
-        print(f"新条目数: {results['new_entries']}")
-        
-        return results
-    
-    async def process_single_feed(self, feed_name: str) -> Dict[str, Any]:
-        """处理单个 RSS 源"""
-        config = self.load_config()
-        if not config:
-            raise HTTPException(status_code=400, detail="No RSS feeds configured")
-        
-        # 查找指定名称的 feed
-        feed_config = None
-        feed_id = None
-        feed_info = None
-        
-        for item in config:
-            for key, value in item.items():
-                if key == feed_name:
-                    feed_config = item
-                    feed_id = key
-                    feed_info = value
-                    break
-            if feed_config:
-                break
-        
-        if not feed_config:
-            raise HTTPException(status_code=404, detail=f"Feed '{feed_name}' not found in configuration")
-        
-        feed_title = feed_info.get('title', 'Unknown')
-        feed_url = feed_info.get('url')
-        
-        if not feed_url:
-            raise HTTPException(status_code=400, detail=f"No URL found for feed '{feed_name}'")
-        
-        print(f"\n=== 处理 RSS 源: {feed_title} ===")
-        
-        # 下载 XML
-        xml_content = await self.download_rss_xml(feed_url)
-        if not xml_content:
-            error_msg = f"无法下载 RSS 内容: {feed_url}"
-            print(error_msg)
-            return {
-                "id": feed_id,
-                "title": feed_title,
-                "status": "failed",
-                "error": error_msg
-            }
-        
-        # 解析 XML
-        entries = self.parse_rss_xml(xml_content, feed_title)
-        
-        # 保存到数据库
-        new_entries = self.save_entries_to_db(entries)
-        
-        result = {
-            "id": feed_id,
-            "title": feed_title,
-            "status": "success",
-            "total_entries": len(entries),
-            "new_entries": len(new_entries)
-        }
-        
-        print(f"处理完成: {feed_title}")
-        print(f"总条目数: {len(entries)}")
-        print(f"新条目数: {len(new_entries)}")
-        
-        return result
+        return saved_entries
     
     async def download_feed_audio(self, feed_name: str) -> Dict[str, Any]:
         """下载指定 feed 的未下载音频文件"""
-        from services.download_service import DownloadService
-        download_service = DownloadService()
-        
-        # 获取指定 feed 的未下载条目
-        entries = self.db_service.get_entries_by_query(
-            "feed_title = ? AND isDownload = 0",
-            (feed_name,)
-        )
-        
-        if not entries:
-            return {
-                "message": f"没有需要下载的 RSS 条目 (feed: {feed_name})",
-                "success": [],
-                "failed": []
-            }
-        
-        print(f"\n=== 开始下载 {feed_name} 的音频文件 ===")
-        print(f"找到 {len(entries)} 个未下载的条目")
-        
-        # 使用下载服务处理这些条目
-        success_files = []
-        failed_files = []
-        
-        for entry in entries:
-            try:
-                print(f"\n下载: {entry['title']}")
-                result = await download_service.download_single_file(entry["id"])
-                if result["success"]:
-                    success_files.append(entry["title"])
-                    print(f"下载成功: {entry['title']}")
-                else:
+        try:
+            print(f"\n=== 开始下载 {feed_name} 的音频文件 ===")
+            
+            # 获取指定 feed 的未下载条目
+            entries = self.db_service.get_entries_by_query(
+                "feed_title = ? AND isDownload = 0 AND url IS NOT NULL AND url != 'null' AND mime_type LIKE '%audio%'",
+                (feed_name,)
+            )
+            
+            print(f"找到 {len(entries)} 个需要下载的条目")
+            
+            # 下载音频文件
+            success_files = []
+            failed_files = []
+            
+            from utils.file_utils import clean_filename
+            
+            for entry in entries:
+                try:
+                    title = entry["title"]
+                    url = entry["url"]
+                    
+                    print(f"\n下载: {title}")
+                    print(f"URL: {url}")
+                    
+                    # 创建输出目录
+                    output_dir = "@data/feed/audio"
+                    os.makedirs(output_dir, exist_ok=True)
+                    
+                    # 清理文件名
+                    clean_title = clean_filename(title)
+                    output_path = f"{output_dir}/{clean_title}.mp3"
+                    
+                    # 下载文件
+                    response = requests.get(url, stream=True)
+                    if response.status_code == 200:
+                        with open(output_path, 'wb') as f:
+                            for chunk in response.iter_content(chunk_size=8192):
+                                f.write(chunk)
+                        
+                        # 更新数据库状态
+                        self.db_service.update_entry_status(entry["id"], download_status=True)
+                        
+                        success_files.append(title)
+                        print(f"下载成功: {title}")
+                    else:
+                        failed_files.append(title)
+                        print(f"下载失败: {title} - HTTP {response.status_code}")
+                except Exception as e:
+                    print(f"下载异常: {str(e)}")
+                    import traceback
+                    print(traceback.format_exc())
                     failed_files.append(entry["title"])
-                    print(f"下载失败: {entry['title']} - {result.get('error', '未知错误')}")
-            except Exception as e:
-                print(f"下载异常: {str(e)}")
-                import traceback
-                print(traceback.format_exc())
-                failed_files.append(entry["title"])
-        
-        print(f"\n=== 下载完成 ===")
-        print(f"成功: {len(success_files)} 个文件")
-        print(f"失败: {len(failed_files)} 个文件")
-        
-        return {
-            "success": success_files,
-            "failed": failed_files
-        }
+            
+            print(f"\n=== 下载完成 ===")
+            print(f"成功: {len(success_files)} 个文件")
+            print(f"失败: {len(failed_files)} 个文件")
+            
+            return {
+                "success": success_files,
+                "failed": failed_files
+            }
+        except Exception as e:
+            print(f"下载音频文件失败: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return {
+                "error": str(e)
+            }
     
     async def transcribe_feed_audio(self, feed_name: str) -> Dict[str, Any]:
         """转写指定 feed 的已下载但未转写的音频文件"""

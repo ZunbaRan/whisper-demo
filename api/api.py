@@ -1,4 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from typing import Dict, List, Optional, Any
 import os
 import sys
@@ -70,6 +75,13 @@ rss_service = RssService()
 # 初始化 Apple RSS 服务
 apple_rss_service = AppleRssService()
 
+# 配置模板和静态文件
+templates = Jinja2Templates(directory="templates")
+# 暂时注释掉静态文件挂载
+# app.mount("/static", StaticFiles(directory="static"), name="static")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 @app.post("/follow/entries/batch", response_model=FollowEntriesResponse)
 async def get_entries_batch(request: FollowCountRequest):
     """获取指定数量的条目"""
@@ -101,15 +113,6 @@ async def batch_transcribe_audio():
     """批量转写已下载的音频文件"""
     return await transcription_service.batch_transcribe_downloaded_audio()
 
-@app.post("/workflow/complete", response_model=Dict[str, List[str]])
-async def run_complete_workflow(cookie: str, mode: str = "all"):
-    """运行完整的工作流程：获取数据、下载并处理文件"""
-    return await workflow_service.run_complete_workflow(cookie, mode)
-
-@app.get("/rss/process", response_model=Dict[str, Any])
-async def process_rss_feeds():
-    """处理所有配置的 RSS 源"""
-    return await apple_rss_service.process_all_feeds()
 
 @app.get("/rss/download/{feed_name}", response_model=Dict[str, Any])
 async def download_rss_audio_by_feed(feed_name: str):
@@ -129,13 +132,28 @@ async def run_rss_workflow(feed_name: str):
 @app.get("/rss/process/{feed_name}", response_model=Dict[str, Any])
 async def process_single_rss_feed(feed_name: str):
     """处理指定名称的 RSS 源"""
-    return await apple_rss_service.process_single_feed(feed_name)
+    print(f"收到处理 RSS 源请求: {feed_name}")
+    try:
+        result = await apple_rss_service.process_single_feed(feed_name)
+        print(f"处理 RSS 源完成: {feed_name}, 状态: {result.get('status')}")
+        return result
+    except Exception as e:
+        print(f"处理 RSS 源时发生异常: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"处理 RSS 源失败: {str(e)}")
 
-@app.get("/db/entries", response_model=List[Dict[str, Any]])
-async def get_all_entries(limit: int = 100, offset: int = 0):
+@app.get("/db/entries", response_model=Dict[str, Any])
+async def get_all_entries(limit: int = 100, offset: int = 0, count: bool = False):
     """获取数据库中的所有条目"""
     db_service = DBService()
-    return db_service.get_entries(limit, offset)
+    entries = db_service.get_entries(limit, offset)
+    
+    if count:
+        total = db_service.get_entries_count()
+        return {"entries": entries, "total": total}
+    else:
+        return {"entries": entries}
 
 @app.get("/db/entries/{id}", response_model=Dict[str, Any])
 async def get_entry_by_id(id: str):
@@ -156,6 +174,118 @@ async def get_database_stats():
 async def run_feed_workflow(feed_name: str, limit: int = 10):
     """处理指定 feed 的工作流程"""
     return await workflow_service.run_feed_workflow(feed_name, limit)
+
+@app.post("/db/clear", response_model=Dict[str, bool])
+async def clear_database():
+    """清空数据库中的所有数据"""
+    db_service = DBService()
+    success = db_service.clear_database()
+    return {"success": success}
+
+@app.post("/rss/feeds", response_model=Dict[str, Any])
+async def add_rss_feed(title: str, url: str):
+    """添加新的 RSS 源"""
+    db_service = DBService()
+    feed = db_service.save_rss_feed(title, url)
+    if not feed:
+        raise HTTPException(status_code=400, detail="Failed to add RSS feed")
+    return feed
+
+@app.get("/rss/feeds", response_model=List[Dict[str, Any]])
+async def get_rss_feeds():
+    """获取所有 RSS 源"""
+    db_service = DBService()
+    return db_service.get_all_rss_feeds()
+
+@app.delete("/rss/feeds/{feed_id}", response_model=Dict[str, bool])
+async def delete_rss_feed(feed_id: int):
+    """删除 RSS 源"""
+    db_service = DBService()
+    success = db_service.delete_rss_feed(feed_id)
+    return {"success": success}
+
+@app.get("/db/entries/count", response_model=Dict[str, int])
+async def get_entries_count():
+    """获取条目总数"""
+    db_service = DBService()
+    count = db_service.get_entries_count()
+    return {"count": count}
+
+# 添加 HTML 页面路由
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    """首页"""
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/feeds", response_class=HTMLResponse)
+async def feeds_page(request: Request):
+    """Feed 列表页面"""
+    return templates.TemplateResponse("feeds.html", {"request": request})
+
+@app.get("/entries", response_class=HTMLResponse)
+async def entries_page(request: Request):
+    """条目列表页面"""
+    return templates.TemplateResponse("entries.html", {"request": request})
+
+@app.get("/stats", response_class=HTMLResponse)
+async def stats_page(request: Request):
+    """统计信息页面"""
+    return templates.TemplateResponse("stats.html", {"request": request})
+
+@app.get("/rss/config", response_class=HTMLResponse)
+async def rss_config_page(request: Request):
+    """RSS 配置页面"""
+    return templates.TemplateResponse("rss_config.html", {"request": request})
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """处理 HTTP 异常"""
+    return templates.TemplateResponse(
+        "error.html", 
+        {
+            "request": request, 
+            "status_code": exc.status_code,
+            "detail": exc.detail
+        },
+        status_code=exc.status_code
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """处理请求验证错误"""
+    return templates.TemplateResponse(
+        "error.html", 
+        {
+            "request": request, 
+            "status_code": 422,
+            "detail": "请求参数验证失败"
+        },
+        status_code=422
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """处理一般异常"""
+    return templates.TemplateResponse(
+        "error.html", 
+        {
+            "request": request, 
+            "status_code": 500,
+            "detail": "服务器内部错误"
+        },
+        status_code=500
+    )
+
+# 在应用启动时创建数据库表和必要的目录
+@app.on_event("startup")
+async def startup_event():
+    # 创建 @data 目录
+    os.makedirs("@data", exist_ok=True)
+    
+    # 创建数据库表
+    db_service = DBService()
+    db_service.create_tables()
+    print("数据库表已创建")
 
 if __name__ == "__main__":
     import uvicorn

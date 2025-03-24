@@ -84,3 +84,5 @@ python tests/test_cuda.py
 4. 建议在生产环境中添加适当的安全措施（如认证）
 
 Invoke-WebRequest -Uri "https://feeds.megaphone.fm/PPLLC8974708240" -OutFile "G:\project\whis-server\whisper-demo\doc\1.xml"
+
+uvicorn api.api:app --reload

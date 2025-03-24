@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}RSS 音频处理系统 - 统计信息{% endblock %}
+
+{% block content %}
+<h2>统计信息</h2>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">总览</h5>
+                <p class="card-text">总条目数: <span id="total-entries">加载中...</span></p>
+                <p class="card-text">已下载条目: <span id="downloaded-entries">加载中...</span></p>
+                <p class="card-text">已转写条目: <span id="transcribed-entries">加载中...</span></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Feed 统计</h5>
+                <div id="feeds-stats">加载中...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">处理进度</h5>
+                <div class="progress mb-3">
+                    <div id="download-progress" class="progress-bar bg-success" role="progressbar" style="width: 0%">0%</div>
+                </div>
+                <p class="card-text">下载进度: <span id="download-percentage">0%</span></p>
+                
+                <div class="progress mb-3">
+                    <div id="transcription-progress" class="progress-bar bg-info" role="progressbar" style="width: 0%">0%</div>
+                </div>
+                <p class="card-text">转写进度: <span id="transcription-percentage">0%</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const stats = await callApi('/db/stats');
+        
+        // 更新总览
+        document.getElementById('total-entries').textContent = stats.total_entries;
+        document.getElementById('downloaded-entries').textContent = stats.downloaded_entries;
+        document.getElementById('transcribed-entries').textContent = stats.transcribed_entries;
+        
+        // 更新进度条
+        const downloadPercentage = stats.total_entries > 0 
+            ? Math.round((stats.downloaded_entries / stats.total_entries) * 100) 
+            : 0;
+        const transcriptionPercentage = stats.total_entries > 0 
+            ? Math.round((stats.transcribed_entries / stats.total_entries) * 100) 
+            : 0;
+        
+        document.getElementById('download-progress').style.width = `${downloadPercentage}%`;
+        document.getElementById('download-progress').textContent = `${downloadPercentage}%`;
+        document.getElementById('download-percentage').textContent = `${downloadPercentage}% (${stats.downloaded_entries}/${stats.total_entries})`;
+        
+        document.getElementById('transcription-progress').style.width = `${transcriptionPercentage}%`;
+        document.getElementById('transcription-progress').textContent = `${transcriptionPercentage}%`;
+        document.getElementById('transcription-percentage').textContent = `${transcriptionPercentage}% (${stats.transcribed_entries}/${stats.total_entries})`;
+        
+        // 更新 Feed 统计
+        const feedsStats = document.getElementById('feeds-stats');
+        if (stats.feeds && stats.feeds.length > 0) {
+            let html = '<div class="table-responsive"><table class="table table-striped">';
+            html += '<thead><tr><th>Feed</th><th>条目数</th><th>操作</th></tr></thead><tbody>';
+            
+            stats.feeds.forEach(feed => {
+                html += `
+                    <tr>
+                        <td>${feed.title}</td>
+                        <td>${feed.count}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-primary" onclick="processFeed('${feed.title}', 'process')">获取数据</button>
+                                <button class="btn btn-sm btn-success" onclick="processFeed('${feed.title}', 'download')">下载</button>
+                                <button class="btn btn-sm btn-info" onclick="processFeed('${feed.title}', 'transcribe')">转写</button>
+                                <button class="btn btn-sm btn-warning" onclick="processFeed('${feed.title}', 'workflow')">完整处理</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            feedsStats.innerHTML = html;
+        } else {
+            feedsStats.innerHTML = '<p>没有找到 Feed</p>';
+        }
+    } catch (error) {
+        console.error('加载统计信息失败:', error);
+        document.getElementById('total-entries').textContent = '加载失败';
+        document.getElementById('downloaded-entries').textContent = '加载失败';
+        document.getElementById('transcribed-entries').textContent = '加载失败';
+        document.getElementById('feeds-stats').innerHTML = `<p class="text-danger">加载失败: ${error.message}</p>`;
+    }
+});
+
+async function processFeed(feedName, action) {
+    if (!confirm(`确定要${action === 'process' ? '获取' : action === 'download' ? '下载' : action === 'transcribe' ? '转写' : '完整处理'} ${feedName} 的数据吗？`)) {
+        return;
+    }
+    
+    try {
+        let url;
+        switch (action) {
+            case 'process':
+                url = `/rss/process/${feedName}`;
+                break;
+            case 'download':
+                url = `/rss/download/${feedName}`;
+                break;
+            case 'transcribe':
+                url = `/rss/transcribe/${feedName}`;
+                break;
+            case 'workflow':
+                url = `/workflow/feed/${feedName}`;
+                break;
+            default:
+                throw new Error('未知操作');
+        }
+        
+        const result = await callApi(url);
+        
+        let message = '处理成功';
+        if (result.success) {
+            message += `\n成功: ${result.success.length} 个文件`;
+        }
+        if (result.failed) {
+            message += `\n失败: ${result.failed.length} 个文件`;
+        }
+        
+        alert(message);
+        
+        // 刷新页面
+        location.reload();
+    } catch (error) {
+        console.error('处理 Feed 失败:', error);
+        alert(`处理失败: ${error.message}`);
+    }
+}
+{% endblock %} 

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}RSS 音频处理系统 - 首页{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">RSS 音频处理系统</h1>
+    <p class="lead">这是一个用于处理 RSS 音频的系统，可以自动下载和转写 RSS 源中的音频内容。</p>
+    <hr class="my-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">数据统计</h5>
+                    <p class="card-text">总条目数: <span id="total-entries">加载中...</span></p>
+                    <p class="card-text">已下载条目: <span id="downloaded-entries">加载中...</span></p>
+                    <p class="card-text">已转写条目: <span id="transcribed-entries">加载中...</span></p>
+                    <a href="/stats" class="btn btn-primary">查看详情</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Feed 列表</h5>
+                    <div id="feeds-list">加载中...</div>
+                    <a href="/feeds" class="btn btn-primary mt-3">查看所有 Feed</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        // 获取统计信息
+        const stats = await callApi('/db/stats');
+        document.getElementById('total-entries').textContent = stats.total_entries;
+        document.getElementById('downloaded-entries').textContent = stats.downloaded_entries;
+        document.getElementById('transcribed-entries').textContent = stats.transcribed_entries;
+        
+        // 获取 Feed 列表
+        const feedsList = document.getElementById('feeds-list');
+        if (stats.feeds && stats.feeds.length > 0) {
+            let feedsHtml = '<ul class="list-group">';
+            stats.feeds.slice(0, 5).forEach(feed => {
+                feedsHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${feed.title}
+                    <span class="badge bg-primary rounded-pill">${feed.count}</span>
+                </li>`;
+            });
+            feedsHtml += '</ul>';
+            feedsList.innerHTML = feedsHtml;
+        } else {
+            feedsList.innerHTML = '<p>没有找到 Feed</p>';
+        }
+    } catch (error) {
+        console.error('加载数据失败:', error);
+    }
+});
+{% endblock %} 

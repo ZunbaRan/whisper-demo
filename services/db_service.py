@@ -6,8 +6,10 @@ from contextlib import contextmanager
 from utils.file_utils import clean_filename
 
 class DBService:
-    def __init__(self, db_path: str = "./output/feed/feed.db"):
+    def __init__(self, db_path: str = "@data/rss_database.db"):
         """初始化数据库服务"""
+        # 确保目录存在
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self.db_path = db_path
         self.ensure_db_exists()
     
@@ -591,4 +593,235 @@ class DBService:
     def find_entry_by_title(self, title: str) -> Optional[Dict[str, Any]]:
         """通过标题查找条目"""
         entries = self.get_entries_by_query("title = ?", (title,))
-        return entries[0] if entries else None 
+        return entries[0] if entries else None
+    
+    def clear_database(self) -> bool:
+        """清空数据库中的所有数据"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 获取所有表名
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tables = cursor.fetchall()
+                
+                # 开启外键约束
+                cursor.execute("PRAGMA foreign_keys = OFF")
+                
+                # 删除每个表中的数据
+                for table in tables:
+                    table_name = table[0]
+                    if table_name != "sqlite_sequence":  # 跳过 SQLite 内部表
+                        cursor.execute(f"DELETE FROM {table_name}")
+                
+                # 检查 sqlite_sequence 表是否存在
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'")
+                if cursor.fetchone():
+                    # 如果存在，则删除其中的数据
+                    cursor.execute("DELETE FROM sqlite_sequence")
+                
+                # 恢复外键约束
+                cursor.execute("PRAGMA foreign_keys = ON")
+                
+                conn.commit()
+                return True
+        except Exception as e:
+            print(f"清空数据库失败: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return False
+    
+    def save_rss_feed(self, title: str, url: str) -> Optional[Dict[str, Any]]:
+        """保存 RSS 源到数据库"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 检查是否已存在
+                cursor.execute("SELECT * FROM rss_feeds WHERE title = ? OR url = ?", (title, url))
+                existing = cursor.fetchone()
+                
+                if existing:
+                    return dict(existing)
+                
+                # 插入新记录
+                cursor.execute(
+                    "INSERT INTO rss_feeds (title, url) VALUES (?, ?)",
+                    (title, url)
+                )
+                
+                feed_id = cursor.lastrowid
+                conn.commit()
+                
+                # 返回新创建的记录
+                cursor.execute("SELECT * FROM rss_feeds WHERE id = ?", (feed_id,))
+                return dict(cursor.fetchone())
+        except Exception as e:
+            print(f"保存 RSS 源失败: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return None
+    
+    def get_all_rss_feeds(self) -> List[Dict[str, Any]]:
+        """获取所有 RSS 源"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM rss_feeds ORDER BY title")
+                
+                feeds = []
+                for row in cursor.fetchall():
+                    feeds.append(dict(row))
+                
+                return feeds
+        except Exception as e:
+            print(f"获取 RSS 源失败: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return []
+    
+    def delete_rss_feed(self, feed_id: int) -> bool:
+        """删除 RSS 源"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM rss_feeds WHERE id = ?", (feed_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"删除 RSS 源失败: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return False
+    
+    def create_tables(self):
+        """创建必要的数据库表"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 创建 entries 表
+                cursor.execute('''
+                CREATE TABLE IF NOT EXISTS entries (
+                    id TEXT PRIMARY KEY,
+                    title TEXT,
+                    publishedAt TEXT,
+                    url TEXT,
+                    mime_type TEXT,
+                    isDownload INTEGER DEFAULT 0,
+                    isTranscription INTEGER DEFAULT 0,
+                    summary TEXT,
+                    description TEXT,
+                    image TEXT,
+                    feed_title TEXT
+                )
+                ''')
+                
+                # 创建 rss_feeds 表
+                cursor.execute('''
+                CREATE TABLE IF NOT EXISTS rss_feeds (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT UNIQUE,
+                    url TEXT UNIQUE
+                )
+                ''')
+                
+                # 检查并添加缺少的列
+                self._ensure_column_exists(conn, 'entries', 'summary', 'TEXT')
+                self._ensure_column_exists(conn, 'entries', 'description', 'TEXT')
+                self._ensure_column_exists(conn, 'entries', 'image', 'TEXT')
+                self._ensure_column_exists(conn, 'entries', 'feed_title', 'TEXT')
+                
+                conn.commit()
+        except Exception as e:
+            print(f"创建数据库表失败: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+    
+    def _ensure_column_exists(self, conn, table_name, column_name, column_type):
+        """确保表中存在指定的列，如果不存在则添加"""
+        try:
+            cursor = conn.cursor()
+            
+            # 检查列是否存在
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if column_name not in columns:
+                print(f"添加列 {column_name} 到表 {table_name}")
+                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+        except Exception as e:
+            print(f"检查/添加列失败: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+    
+    def save_entry(self, entry: Dict[str, Any]) -> bool:
+        """保存单个条目到数据库"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 检查条目是否已存在
+                cursor.execute("SELECT id FROM entries WHERE id = ?", (entry['id'],))
+                existing = cursor.fetchone()
+                
+                if existing:
+                    # 更新现有条目
+                    cursor.execute('''
+                    UPDATE entries
+                    SET title = ?, publishedAt = ?, url = ?, mime_type = ?,
+                        summary = ?, description = ?, image = ?, feed_title = ?
+                    WHERE id = ?
+                    ''', (
+                        entry['title'],
+                        entry['publishedAt'],
+                        entry['url'],
+                        entry['mime_type'],
+                        entry.get('summary'),
+                        entry.get('description'),
+                        entry.get('image'),
+                        entry.get('feed_title'),
+                        entry['id']
+                    ))
+                else:
+                    # 插入新条目
+                    cursor.execute('''
+                    INSERT INTO entries (
+                        id, title, publishedAt, url, mime_type,
+                        isDownload, isTranscription, summary, description, image, feed_title
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        entry['id'],
+                        entry['title'],
+                        entry['publishedAt'],
+                        entry['url'],
+                        entry['mime_type'],
+                        1 if entry.get('isDownload') == 'true' else 0,
+                        1 if entry.get('isTranscription') == 'true' else 0,
+                        entry.get('summary'),
+                        entry.get('description'),
+                        entry.get('image'),
+                        entry.get('feed_title')
+                    ))
+                
+                conn.commit()
+                return True
+        except Exception as e:
+            print(f"保存条目失败: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return False
+    
+    def get_entries_count(self) -> int:
+        """获取条目总数"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) as count FROM entries")
+                result = cursor.fetchone()
+                return result['count'] if result else 0
+        except Exception as e:
+            print(f"获取条目总数失败: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return 0 
