@@ -34,6 +34,38 @@ from services.rss_service import RssService
 from services.apple_rss_service import AppleRssService
 from services.db_service import DBService
 
+# 引入 Deep Research 相关依赖
+import logging
+import os
+import sys
+from typing import AsyncIterable, Union, Dict, Any, List
+
+# 确保 deep_research 模块可以被导入
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# 添加 Deep Research 相关导入
+from deep_research.deep_research import DeepResearch, ExtraConfig
+from deep_research.search_engine.tavily import TavilySearchEngine
+from deep_research.search_engine.volc_bot import VolcBotSearchEngine
+from deep_research.utils import get_last_message
+
+# 添加 Deep Research 相关模型
+from pydantic import BaseModel
+
+class DeepResearchRequest(BaseModel):
+    messages: List[Dict[str, str]]
+    stream: bool = False
+    max_search_words: int = 5
+    max_planning_rounds: int = 5
+
+class DeepResearchResponse(BaseModel):
+    id: str
+    object: str
+    created: int
+    model: str
+    choices: List[Dict[str, Any]]
+    usage: Dict[str, int]
+
 app = FastAPI(title="Whisper Transcription API")
 
 # 配置信息
@@ -81,6 +113,13 @@ templates = Jinja2Templates(directory="templates")
 # app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# 初始化 Deep Research 配置
+# 从环境变量获取配置，如果没有设置则使用默认值
+REASONING_MODEL = os.getenv("REASONING_MODEL", "deepseek-r1-250120")
+SEARCH_ENGINE = os.getenv("SEARCH_ENGINE", "volc_bot")
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
+SEARCH_BOT_ID = os.getenv("SEARCH_BOT_ID", "")
 
 @app.post("/follow/entries/batch", response_model=FollowEntriesResponse)
 async def get_entries_batch(request: FollowCountRequest):
@@ -286,6 +325,82 @@ async def startup_event():
     db_service = DBService()
     db_service.create_tables()
     print("数据库表已创建")
+    
+    # 设置 Deep Research 默认环境变量（如果未设置）
+    if not os.getenv("REASONING_MODEL"):
+        os.environ["REASONING_MODEL"] = "deepseek-r1-250120"
+    
+    if not os.getenv("SEARCH_ENGINE"):
+        os.environ["SEARCH_ENGINE"] = "volc_bot"
+    
+    # 确保搜索引擎相关配置已设置
+    if os.getenv("SEARCH_ENGINE") == "volc_bot" and not os.getenv("SEARCH_BOT_ID"):
+        print("警告: 使用 volc_bot 搜索引擎但未设置 SEARCH_BOT_ID 环境变量")
+    
+    if os.getenv("SEARCH_ENGINE") == "tavily" and not os.getenv("TAVILY_API_KEY"):
+        print("警告: 使用 tavily 搜索引擎但未设置 TAVILY_API_KEY 环境变量")
+
+# 添加 Deep Research 相关路由
+
+@app.post("/api/deep_research", response_model=DeepResearchResponse)
+async def deep_research_handler(request: DeepResearchRequest):
+    """处理深度思考请求，使用大模型和搜索引擎分析复杂问题"""
+    
+    # 获取用户最后一条消息作为查询
+    last_user_message = get_last_message(request.messages, "user")
+    
+    # 设置搜索引擎
+    search_engine = VolcBotSearchEngine(bot_id=SEARCH_BOT_ID)
+    if "tavily" == SEARCH_ENGINE:
+        search_engine = TavilySearchEngine(api_key=TAVILY_API_KEY)
+
+    # 初始化 DeepResearch
+    deep_research = DeepResearch(
+        search_engine=search_engine,
+        planning_endpoint_id=REASONING_MODEL,
+        summary_endpoint_id=REASONING_MODEL,
+        extra_config=ExtraConfig(
+            max_search_words=request.max_search_words,
+            max_planning_rounds=request.max_planning_rounds,
+        )
+    )
+
+    # 构建与 ArkChatRequest 兼容的请求对象
+    chat_request = {
+        "messages": request.messages,
+        "stream": request.stream,
+        "metadata": {
+            "max_search_words": request.max_search_words,
+            "max_planning_rounds": request.max_planning_rounds
+        }
+    }
+
+    # 处理请求
+    if request.stream:
+        # 对于流式响应，我们需要返回StreamingResponse
+        from fastapi.responses import StreamingResponse
+        
+        async def stream_generator():
+            async for chunk in deep_research.astream_deep_research(
+                request=chat_request, 
+                question=last_user_message["content"]
+            ):
+                yield f"data: {chunk.json()}\n\n"
+                
+        return StreamingResponse(stream_generator(), media_type="text/event-stream")
+    else:
+        # 对于非流式响应，直接返回结果
+        result = await deep_research.arun_deep_research(
+            request=chat_request, 
+            question=last_user_message["content"]
+        )
+        return result
+
+# 添加 Deep Research 的网页界面路由
+@app.get("/deep_research", response_class=HTMLResponse)
+async def deep_research_page(request: Request):
+    """Deep Research 页面"""
+    return templates.TemplateResponse("deep_research.html", {"request": request})
 
 if __name__ == "__main__":
     import uvicorn
