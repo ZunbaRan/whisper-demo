@@ -21,7 +21,7 @@ from arkitect.core.component.llm.model import (
 from arkitect.launcher.local.serve import launch_serve
 from arkitect.launcher.vefaas import bot_wrapper
 from arkitect.telemetry.trace import task
-from search_engine.tavily import TavilySearchEngine
+from search_engine.tavily import TavilySearchEngine  # 暂时不使用 Tavily
 from search_engine.volc_bot import VolcBotSearchEngine
 from deep_research_project import DeepResearch, ExtraConfig
 

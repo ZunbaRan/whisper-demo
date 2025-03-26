@@ -21,10 +21,10 @@ from arkitect.core.component.llm.model import ArkMessage, ArkChatRequest, ArkCha
 from arkitect.core.component.prompts import CustomPromptTemplate
 from arkitect.telemetry.logger import INFO
 
-from search_engine import SearchEngine, SearchResult
-from search_engine.volc_bot import VolcBotSearchEngine
-from prompt import DEFAULT_PLANNING_PROMPT, DEFAULT_SUMMARY_PROMPT
-from utils import get_current_date, cast_content_to_reasoning_content, gen_metadata_chunk
+from .search_engine import SearchEngine, SearchResult
+from .search_engine.volc_bot import VolcBotSearchEngine
+from .prompt import DEFAULT_PLANNING_PROMPT, DEFAULT_SUMMARY_PROMPT
+from .utils import get_current_date, cast_content_to_reasoning_content, gen_metadata_chunk
 
 """
 ResultsSummary is using to store the result searched so far
@@ -50,7 +50,7 @@ class ResultsSummary(BaseModel):
         output = ""
 
         for key, value in self.ref_dict.items():
-            output += f"\n【查询 “{key}” 得到的相关资料】"
+            output += f'\n【查询 "{key}" 得到的相关资料】'
             output += "\n".join([v.summary_content for v in value])
 
         return output
