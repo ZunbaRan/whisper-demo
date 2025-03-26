@@ -113,136 +113,136 @@
         <button class="btn btn-primary" id="sendButton">发送</button>
     </div>
 </div>
+{% endblock %}
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const chatContainer = document.getElementById('chatContainer');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const maxSearchWords = document.getElementById('max_search_words');
-        const maxPlanningRounds = document.getElementById('max_planning_rounds');
+{% block scripts %}
+document.addEventListener('DOMContentLoaded', function() {
+    const chatContainer = document.getElementById('chatContainer');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const maxSearchWords = document.getElementById('max_search_words');
+    const maxPlanningRounds = document.getElementById('max_planning_rounds');
+    
+    let messages = [];
+    let isProcessing = false;
+    
+    sendButton.addEventListener('click', async function() {
+        const question = messageInput.value.trim();
+        if (question === '' || isProcessing) return;
         
-        let messages = [];
-        let isProcessing = false;
+        // 显示用户消息
+        addMessage('user', question);
         
-        sendButton.addEventListener('click', async function() {
-            const question = messageInput.value.trim();
-            if (question === '' || isProcessing) return;
-            
-            // 显示用户消息
-            addMessage('user', question);
-            
-            // 清空输入框
-            messageInput.value = '';
-            
-            // 添加思考中提示
-            const thinkingElement = document.createElement('div');
-            thinkingElement.className = 'thinking-status';
-            thinkingElement.innerHTML = '<span class="loader"></span>正在思考中...';
-            chatContainer.appendChild(thinkingElement);
-            
-            // 记录消息
-            messages.push({
-                role: 'user',
-                content: question
+        // 清空输入框
+        messageInput.value = '';
+        
+        // 添加思考中提示
+        const thinkingElement = document.createElement('div');
+        thinkingElement.className = 'thinking-status';
+        thinkingElement.innerHTML = '<span class="loader"></span>正在思考中...';
+        chatContainer.appendChild(thinkingElement);
+        
+        // 记录消息
+        messages.push({
+            role: 'user',
+            content: question
+        });
+        
+        isProcessing = true;
+        
+        try {
+            // 发送请求到 API
+            const response = await fetch('/deep-research/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    messages: messages,
+                    stream: false,
+                    max_search_words: parseInt(maxSearchWords.value),
+                    max_planning_rounds: parseInt(maxPlanningRounds.value)
+                })
             });
             
-            isProcessing = true;
-            
-            try {
-                // 发送请求到 API
-                const response = await fetch('/api/deep_research', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        messages: messages,
-                        stream: false,
-                        max_search_words: parseInt(maxSearchWords.value),
-                        max_planning_rounds: parseInt(maxPlanningRounds.value)
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('请求失败: ' + response.status);
-                }
-                
-                const data = await response.json();
-                
-                // 移除思考中提示
-                chatContainer.removeChild(thinkingElement);
-                
-                // 显示模型思考过程
-                if (data.choices[0].message.reasoning_content) {
-                    addMessage('bot-thinking', data.choices[0].message.reasoning_content);
-                }
-                
-                // 显示最终回答
-                addMessage('bot', data.choices[0].message.content);
-                
-                // 记录回复
-                messages.push({
-                    role: 'assistant',
-                    content: data.choices[0].message.content
-                });
-            } catch (error) {
-                console.error('错误:', error);
-                
-                // 移除思考中提示
-                chatContainer.removeChild(thinkingElement);
-                
-                // 显示错误消息
-                const errorElement = document.createElement('div');
-                errorElement.className = 'bot-message';
-                errorElement.textContent = '发生错误: ' + error.message;
-                chatContainer.appendChild(errorElement);
-            } finally {
-                isProcessing = false;
-                
-                // 滚动到底部
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-        });
-        
-        // 允许按 Enter 发送消息
-        messageInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendButton.click();
-            }
-        });
-        
-        function addMessage(type, content) {
-            const messageElement = document.createElement('div');
-            
-            if (type === 'user') {
-                messageElement.className = 'user-message';
-                messageElement.textContent = content;
-            } else if (type === 'bot') {
-                messageElement.className = 'bot-message';
-                messageElement.innerHTML = formatMarkdown(content);
-            } else if (type === 'bot-thinking') {
-                messageElement.className = 'bot-message';
-                messageElement.innerHTML = '<details><summary>思考过程 (点击展开)</summary>'
-                    + formatMarkdown(content) + '</details>';
+            if (!response.ok) {
+                throw new Error('请求失败: ' + response.status);
             }
             
-            chatContainer.appendChild(messageElement);
+            const data = await response.json();
+            
+            // 移除思考中提示
+            chatContainer.removeChild(thinkingElement);
+            
+            // 显示模型思考过程
+            if (data.choices[0].message.reasoning_content) {
+                addMessage('bot-thinking', data.choices[0].message.reasoning_content);
+            }
+            
+            // 显示最终回答
+            addMessage('bot', data.choices[0].message.content);
+            
+            // 记录回复
+            messages.push({
+                role: 'assistant',
+                content: data.choices[0].message.content
+            });
+        } catch (error) {
+            console.error('错误:', error);
+            
+            // 移除思考中提示
+            chatContainer.removeChild(thinkingElement);
+            
+            // 显示错误消息
+            const errorElement = document.createElement('div');
+            errorElement.className = 'bot-message';
+            errorElement.textContent = '发生错误: ' + error.message;
+            chatContainer.appendChild(errorElement);
+        } finally {
+            isProcessing = false;
+            
+            // 滚动到底部
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
-        
-        function formatMarkdown(text) {
-            // 简单的 Markdown 格式化，您可能需要使用更完整的 Markdown 库
-            let formatted = text
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/```(.*?)```/gs, '<pre><code>$1</code></pre>')
-                .replace(/`(.*?)`/g, '<code>$1</code>')
-                .replace(/\n/g, '<br>');
-            
-            return formatted;
+    });
+    
+    // 允许按 Enter 发送消息
+    messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendButton.click();
         }
     });
-</script>
+    
+    function addMessage(type, content) {
+        const messageElement = document.createElement('div');
+        
+        if (type === 'user') {
+            messageElement.className = 'user-message';
+            messageElement.textContent = content;
+        } else if (type === 'bot') {
+            messageElement.className = 'bot-message';
+            messageElement.innerHTML = formatMarkdown(content);
+        } else if (type === 'bot-thinking') {
+            messageElement.className = 'bot-message';
+            messageElement.innerHTML = '<details><summary>思考过程 (点击展开)</summary>'
+                + formatMarkdown(content) + '</details>';
+        }
+        
+        chatContainer.appendChild(messageElement);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    function formatMarkdown(text) {
+        // 简单的 Markdown 格式化，您可能需要使用更完整的 Markdown 库
+        let formatted = text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/```(.*?)```/gs, '<pre><code>$1</code></pre>')
+            .replace(/`(.*?)`/g, '<code>$1</code>')
+            .replace(/\n/g, '<br>');
+        
+        return formatted;
+    }
+});
 {% endblock %} 

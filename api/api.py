@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, APIRouter, Body
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -65,6 +65,16 @@ class DeepResearchResponse(BaseModel):
     model: str
     choices: List[Dict[str, Any]]
     usage: Dict[str, int]
+
+# 添加用于检测Deep Research可用性的函数
+def is_deep_research_available():
+    """检查 Deep Research 依赖是否可用"""
+    try:
+        import arkitect
+        import tavily_python
+        return True
+    except ImportError:
+        return False
 
 app = FastAPI(title="Whisper Transcription API")
 
@@ -340,68 +350,57 @@ async def startup_event():
     if os.getenv("SEARCH_ENGINE") == "tavily" and not os.getenv("TAVILY_API_KEY"):
         print("警告: 使用 tavily 搜索引擎但未设置 TAVILY_API_KEY 环境变量")
 
-# 添加 Deep Research 相关路由
-
-@app.post("/api/deep_research", response_model=DeepResearchResponse)
-async def deep_research_handler(request: DeepResearchRequest):
-    """处理深度思考请求，使用大模型和搜索引擎分析复杂问题"""
-    
-    # 获取用户最后一条消息作为查询
-    last_user_message = get_last_message(request.messages, "user")
-    
-    # 设置搜索引擎
-    search_engine = VolcBotSearchEngine(bot_id=SEARCH_BOT_ID)
-    if "tavily" == SEARCH_ENGINE:
-        search_engine = TavilySearchEngine(api_key=TAVILY_API_KEY)
-
-    # 初始化 DeepResearch
-    deep_research = DeepResearch(
-        search_engine=search_engine,
-        planning_endpoint_id=REASONING_MODEL,
-        summary_endpoint_id=REASONING_MODEL,
-        extra_config=ExtraConfig(
-            max_search_words=request.max_search_words,
-            max_planning_rounds=request.max_planning_rounds,
-        )
-    )
-
-    # 构建与 ArkChatRequest 兼容的请求对象
-    chat_request = {
-        "messages": request.messages,
-        "stream": request.stream,
-        "metadata": {
-            "max_search_words": request.max_search_words,
-            "max_planning_rounds": request.max_planning_rounds
-        }
-    }
-
-    # 处理请求
-    if request.stream:
-        # 对于流式响应，我们需要返回StreamingResponse
-        from fastapi.responses import StreamingResponse
+# 在文件底部添加Deep Research相关路由
+if is_deep_research_available():
+    try:
+        # 创建一个路由组
+        deep_research_router = APIRouter(prefix="/deep-research", tags=["deep-research"])
         
-        async def stream_generator():
-            async for chunk in deep_research.astream_deep_research(
-                request=chat_request, 
-                question=last_user_message["content"]
-            ):
-                yield f"data: {chunk.json()}\n\n"
+        @deep_research_router.get("/status")
+        def deep_research_status():
+            return {"status": "Deep Research 功能正常"}
+        
+        @deep_research_router.post("/analyze")
+        async def analyze_query(request_data: Dict[str, Any] = Body(...)):
+            """深度分析请求处理"""
+            try:
+                # 导入深度研究核心功能
+                from deep_research.deep_research import DeepResearch
+                from deep_research.search_engine.tavily import TavilySearchEngine
                 
-        return StreamingResponse(stream_generator(), media_type="text/event-stream")
-    else:
-        # 对于非流式响应，直接返回结果
-        result = await deep_research.arun_deep_research(
-            request=chat_request, 
-            question=last_user_message["content"]
-        )
-        return result
+                # 初始化搜索引擎和深度研究模块
+                import os
+                search_engine = TavilySearchEngine(api_key=os.environ.get("TAVILY_API_KEY", ""))
+                deep_research = DeepResearch(search_engine=search_engine)
+                
+                # 处理请求
+                messages = request_data.get("messages", [])
+                question = next((msg["content"] for msg in messages if msg["role"] == "user"), "")
+                
+                result = await deep_research.chat(messages=messages)
+                return result
+            except Exception as e:
+                logging.error(f"深度分析失败: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"深度分析失败: {str(e)}")
+        
+        @deep_research_router.get("/", response_class=HTMLResponse)
+        async def deep_research_home(request: Request):
+            """Deep Research 首页"""
+            return templates.TemplateResponse("deep_research.html", {"request": request})
+        
+        # 将Deep Research路由添加到应用
+        app.include_router(deep_research_router)
+        logging.info("已加载 Deep Research 路由")
+    except Exception as e:
+        logging.error(f"加载 Deep Research 路由失败: {str(e)}")
+else:
+    logging.warning("Deep Research 依赖未安装，相关功能不可用")
 
-# 添加 Deep Research 的网页界面路由
-@app.get("/deep_research", response_class=HTMLResponse)
-async def deep_research_page(request: Request):
-    """Deep Research 页面"""
-    return templates.TemplateResponse("deep_research.html", {"request": request})
-
-if __name__ == "__main__":
+# 启动服务器的入口点函数
+def start_app():
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run("api.api:app", host="0.0.0.0", port=8000, reload=True)
+
+# 如果直接运行文件
+if __name__ == "__main__":
+    start_app() 

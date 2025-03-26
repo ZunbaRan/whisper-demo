@@ -1,0 +1,82 @@
+[tool.poetry]
+name = "whisper-deep-research"
+version = "0.1.0"
+description = "RSS 音频处理系统与深度思考分析"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.12.0"
+# Whisper核心依赖
+numpy = "1.26.4"  # 保留在主依赖中，专用于whisper
+pandas = "2.2.2"
+torch = { version = "2.5.1+cu121", source = "pytorch" }
+whisperx = "3.3.1"
+fastapi = "0.110.0"
+uvicorn = "0.29.0"
+pydantic = "2.10.0"
+pytest = "8.3.5"
+requests = "2.32.3"
+httpx = "0.27.2"
+aiohttp = "3.11.14"
+aiofiles = "24.1.0" 
+humanize = "4.12.2"
+pyannote-audio = "3.3.2"
+beautifulsoup4 = "^4.9.3"
+selenium = "4.30.0"
+python-multipart = "^0.0.6"
+jinja2 = "^3.1.2"
+pyyaml = "^6.0.1"
+pydub = "^0.25.1"
+
+# 明确标记依赖组为可选
+[tool.poetry.group.deep_research]
+optional = true
+
+[tool.poetry.group.deep_research.dependencies]
+python = ">=3.10.0,<3.12.0"
+arkitect = "^0.1.4"
+tavily-python = "^0.5.1"
+volcengine-python-sdk = ">=1.0.123"
+openpyxl = "^3.1.5"
+openai = "^1.63.0"
+tiktoken = "0.8.0"
+gradio = "^5.17.1"
+
+[tool.poetry.group.web_crawl]
+optional = true
+
+[tool.poetry.group.web_crawl.dependencies]
+crawl4ai = "^0.4.248"
+numpy = ">=1.26.0,<3"
+pydantic = "^2.10.0"
+aiofiles = "^24.1.0"
+beautifulsoup4 = "^4.12.0"
+
+[tool.poetry.group.dev.dependencies]
+# pytest = "^7.4.0"
+black = "^23.3.0"
+isort = "^5.12.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.poetry.scripts]
+start = "api.api:start_app"  # 替换为您实际的入口点函数
+start-whisper = "whisper_app.run:start_whisper"  # 启动 Whisper 应用
+start-deep-research = "deep_research_app.run:start_deep_research"  # 启动 Deep Research 应用
+start-all = "main:start_all"  # 启动合并应用
+
+[[tool.poetry.source]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu121"
+priority = "explicit"
+

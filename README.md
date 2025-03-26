@@ -86,3 +86,24 @@ python tests/test_cuda.py
 Invoke-WebRequest -Uri "https://feeds.megaphone.fm/PPLLC8974708240" -OutFile "G:\project\whis-server\whisper-demo\doc\1.xml"
 
 uvicorn api.api:app --reload
+
+
+创建一个新的 Poetry 环境：
+
+
+   # 删除现有的 Poetry 环境（如果有）
+   poetry env remove --all
+   
+   # 安装新的依赖
+   poetry install
+
+处理可能的依赖冲突：
+   # 如果某个包安装失败
+   poetry add 包名称@^兼容版本
+  
+验证环境：
+   # 进入虚拟环境
+   poetry shell
+   
+   # 检查是否能够导入关键包
+   python -c "import torch; import whisperx; import arkitect; print('所有依赖正常工作')"
