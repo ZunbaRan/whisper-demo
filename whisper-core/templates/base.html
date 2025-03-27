@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RSS 音频处理系统{% endblock %}</title>
+    <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/custom.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+        .navbar {
+            margin-bottom: 20px;
+        }
+        .feed-card {
+            margin-bottom: 20px;
+        }
+        .entry-row:hover {
+            background-color: #f8f9fa;
+        }
+        .badge-download {
+            background-color: #28a745;
+        }
+        .badge-transcription {
+            background-color: #17a2b8;
+        }
+        .tooltip-inner {
+            max-width: 1000px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light rounded">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">RSS 音频处理系统</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">首页</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/feeds">Feed 列表</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/entries">条目列表</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/stats">统计信息</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/rss/config">RSS 配置</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/deep_research">深度分析</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- jQuery (必须在 Bootstrap 之前) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/custom.js"></script>
+    <script>
+        // 通用函数：处理 API 调用
+        async function callApi(url, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+                
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+                
+                const response = await fetch(url, options);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || '请求失败');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API 调用失败:', error);
+                alert('操作失败: ' + error.message);
+                throw error;
+            }
+        }
+        
+        {% block scripts %}{% endblock %}
+    </script>
+</body>
+</html> 

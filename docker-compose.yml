@@ -1,0 +1,42 @@
+version: '3'
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./gateway:/app/gateway
+      - ./frontend:/app/frontend
+    depends_on:
+      - whisper-core
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+
+  whisper-core:
+    build:
+      context: .
+      dockerfile: whisper-core/Dockerfile
+    expose:
+      - "8000"
+    volumes:
+      - ./whisper-core:/app/whisper-core
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+
+  deep-research:
+    build:
+      context: .
+      dockerfile: Dockerfile.deep-research
+    expose:
+      - "8000"
+
+  web-crawl:
+    build:
+      context: .
+      dockerfile: Dockerfile.crawler
+    expose:
+      - "8000" 
