@@ -1,0 +1,32 @@
+# Poetry virtual environment
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Output directory
+output/
+
+# Poetry cache and local configuration
+.poetry/
+poetry.lock
+
+# IDE settings
+.vscode/
+.idea/
+
+# Environment variables
+.env
+
+# Log files
+*.log
+
+# Cache directories
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/ 
