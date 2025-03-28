@@ -55,8 +55,8 @@ cache/
 .cache/
 
 # 数据文件
-@data/
-*.db
+# @data/
+# *.db
 
 # 模型文件
 models/
