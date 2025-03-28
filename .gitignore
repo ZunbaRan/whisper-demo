@@ -34,8 +34,8 @@ poetry.toml
 .env.production.local
 
 # Project specific
-whisper-core/output/feed/*
-whisper-core/output/old/*
+output/
+
 
 *.log
 
