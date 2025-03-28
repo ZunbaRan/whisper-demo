@@ -81,6 +81,8 @@ class DeepResearch(BaseModel):
     search_engine: SearchEngine = Field(default_factory=VolcBotSearchEngine)
     planning_endpoint_id: str = Field(default_factory="")
     summary_endpoint_id: str = Field(default_factory="")
+    # planning_endpoint_id: str = "ep-20250211101729-97nwq"
+    # summary_endpoint_id: str = "ep-20250211101729-97nwq"
     extra_config: ExtraConfig = Field(default_factory=ExtraConfig)
 
     async def arun_deep_research(self, request: ArkChatRequest, question: str) -> ArkChatResponse:

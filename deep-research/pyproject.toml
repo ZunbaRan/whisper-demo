@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "deep-search"
+name = "deep-research"
 version = "0.1.0"
 description = ""
 authors = ["liuminghao <liuminghao.lm@bytedance.com>"]

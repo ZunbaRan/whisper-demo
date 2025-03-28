@@ -13,24 +13,30 @@ import os
 
 """
 for server
+    export ARK_API_KEY=877e8151-2569-4337-a3e2-04f6ae9d5157
+     export REASONING_MODEL=deepseek-r1-250120
+     export SEARCH_ENGINE=volc_bot
+     export SEARCH_BOT_ID=bot-20250325153842-sgrjg
 """
 
 # recommend to use DeepSeek-R1 model
-REASONING_MODEL = os.getenv('REASONING_MODEL') or "deepseek-r1-250120"
+# REASONING_MODEL = "ep-20250211101729-97nwq"
+REASONING_MODEL = "deepseek-r1-250120"
 # default set to volc bot, if using tavily, change it into "tavily"
-SEARCH_ENGINE = os.getenv('SEARCH_ENGINE') or "volc_bot"
+SEARCH_ENGINE =  "volc_bot"
 # optional, if you select tavily as search engine, please configure this
-TAVILY_API_KEY = os.getenv('TAVILY_API_KEY') or "{YOUR_TAVILY_API_KEY}"
+TAVILY_API_KEY = "{YOUR_TAVILY_API_KEY}"
 # optional, if you select volc bot as search engine, please configure this
-SEARCH_BOT_ID = os.getenv('SEARCH_BOT_ID') or "{YOUR_SEARCH_BOT_ID}"
+SEARCH_BOT_ID = "bot-20250325153842-sgrjg"
 
 """
 for webui
 """
 
 # ark api key
-ARK_API_KEY = os.getenv('ARK_API_KEY') or "{YOUR_ARK_API_KEY}"
+ARK_API_KEY = "877e8151-2569-4337-a3e2-04f6ae9d5157"
 # api server address for web ui
-API_ADDR = os.getenv("API_ADDR") or "https://ark.cn-beijing.volces.com/api/v3/bots"
+# API_ADDR = "https://ark.cn-beijing.volces.com/api/v3/bots"
+API_ADDR = "http://localhost:8888/api/v3/bots"
 # while using remote api, need bot id
-API_BOT_ID = os.getenv("API_BOT_ID") or "{YOUR_API_BOT_ID}"
+API_BOT_ID = "bot-20250325153842-sgrjg"

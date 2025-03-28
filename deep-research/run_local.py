@@ -24,13 +24,13 @@ logging.basicConfig(
 LOGGER = logging.getLogger(__name__)
 
 # recommend to use DeepSeek-R1 model
-REASONING_EP_ID = "{YOUR_ENDPOINT_ID}"
+REASONING_EP_ID = "877e8151-2569-4337-a3e2-04f6ae9d5157"
 # default set to volc bot, if using tavily, change it into "tavily"
 SEARCH_ENGINE = "volc_bot"
 # optional, if you select tavily as search engine, please configure this
 TAVILY_API_KEY = "{YOUR_TAVILY_API_KEY}"
 # optional, if you select volc bot as search engine, please configure this
-SEARCH_BOT_ID = "{YOUR_BOT_ID}"
+SEARCH_BOT_ID = "bot-20250325153842-sgrjg"
 QUERY = "找到2023年中国GDP超过万亿的城市，详细分析其中排名后十位的城市的增长率和GDP构成，并结合各城市规划预测5年后这些城市的GDP排名可能会如何变化"
 
 

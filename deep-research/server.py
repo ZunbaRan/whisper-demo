@@ -32,6 +32,7 @@ from config import (
     SEARCH_ENGINE,
     TAVILY_API_KEY,
     SEARCH_BOT_ID,
+    ARK_API_KEY
 )
 
 logging.basicConfig(
@@ -47,7 +48,8 @@ async def main(
     # using last_user_message as query
     last_user_message = get_last_message(request.messages, "user")
     # set search_engine
-    search_engine = VolcBotSearchEngine(bot_id=SEARCH_BOT_ID)
+    logging.info(f" bot_id: {SEARCH_BOT_ID} api_key: {ARK_API_KEY}")
+    search_engine = VolcBotSearchEngine(bot_id=SEARCH_BOT_ID, api_key=ARK_API_KEY)
     if "tavily" == SEARCH_ENGINE:
         search_engine = TavilySearchEngine(api_key=TAVILY_API_KEY)
 

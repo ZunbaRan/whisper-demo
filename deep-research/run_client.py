@@ -11,7 +11,7 @@
 
 from openai import OpenAI
 
-client = OpenAI(base_url="http://localhost:8888/api/v3/bots", api_key="{API_KEY}")
+client = OpenAI(base_url="http://localhost:8888/api/v3/bots", api_key="877e8151-2569-4337-a3e2-04f6ae9d5157")
 
 
 def main():
