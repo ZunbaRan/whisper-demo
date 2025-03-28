@@ -7,6 +7,9 @@ __pycache__/
 # Output directory
 output/
 
+models/
+downloads/
+
 # Poetry cache and local configuration
 .poetry/
 poetry.lock
@@ -29,4 +32,34 @@ htmlcov/
 # Distribution / packaging
 dist/
 build/
-*.egg-info/ 
+*.egg-info/
+
+# 模型和下载文件
+models/
+downloads/
+*.pt
+*.pth
+*.bin
+*.onnx
+*.model
+
+# 大型二进制文件
+*.zip
+*.tar.gz
+*.mp3
+*.wav
+*.m4a
+
+# 缓存文件
+cache/
+.cache/
+
+# 数据文件
+@data/
+*.db
+
+# 模型文件
+models/
+*.bin
+*.pth
+*.json 
