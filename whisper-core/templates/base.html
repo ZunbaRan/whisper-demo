@@ -61,6 +61,12 @@
                         <li class="nav-item">
                             <a class="nav-link" href="/deep_research">深度分析</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/composite_chat">组合模型对话</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/article_convert">文章转换</a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -76,9 +82,13 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/custom.js"></script>
+
+
+    {% if not is_stream_page %}
     <script>
-        // 通用函数：处理 API 调用
-        async function callApi(url, method = 'GET', body = null) {
+
+        // 全局 API 调用函数
+        window.callApi = async function(url, method = 'GET', body = null) {
             try {
                 const options = {
                     method: method,
@@ -101,12 +111,44 @@
                 return data;
             } catch (error) {
                 console.error('API 调用失败:', error);
-                alert('操作失败: ' + error.message);
                 throw error;
             }
-        }
-        
+        };
         {% block scripts %}{% endblock %}
     </script>
+    {% elif is_stream_page %}
+ 
+
+    <script>
+        // 流式请求函数
+        window.streamCallApi = async function(url, method = 'POST', body = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+                
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+                
+                const response = await fetch(url, options);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || '请求失败');
+                }
+                
+                return response;
+            } catch (error) {
+                console.error('API 调用失败:', error);
+                throw error;
+            }
+        };
+    </script>
+    {% block stream_scripts %}{% endblock %}
+    {% endif %}
 </body>
 </html> 

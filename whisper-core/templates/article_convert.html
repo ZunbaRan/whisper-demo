@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">文章转换工具</h2>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group d-flex align-items-center">
+                <div class="flex-grow-1 me-3">
+                    <label for="filePath">文件标识：</label>
+                    <input type="text" class="form-control" id="filePath" placeholder="请输入文件标识">
+                </div>
+                <button class="btn btn-primary mt-4" id="convertBtn" onclick="startConversion()">开始转换</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    处理进度
+                </div>
+                <div class="card-body">
+                    <div id="progressArea" style="white-space: pre-wrap; max-height: 800px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#fileListCollapse" aria-expanded="false">
+                    生成的文件 <i class="fas fa-chevron-down float-end"></i>
+                </div>
+                <div class="collapse" id="fileListCollapse">
+                    <div class="card-body">
+                        <div id="fileList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.phase-section {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border-left: 4px solid #007bff;
+}
+
+.phase-section .phase-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.phase-section .phase-content {
+    display: none;
+    margin-top: 10px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.phase-section.expanded .phase-content {
+    display: block;
+}
+
+.phase-section .phase-toggle {
+    transition: transform 0.3s;
+}
+
+.phase-section.expanded .phase-toggle {
+    transform: rotate(180deg);
+}
+
+.phase-report { border-left-color: #28a745; }
+.phase-timeline { border-left-color: #17a2b8; }
+.phase-start { border-left-color: #ffc107; }
+.phase-enrich { border-left-color: #dc3545; }
+.phase-review { border-left-color: #6f42c1; }
+.phase-banfo { border-left-color: #fd7e14; }
+
+.card-header[role="button"] {
+    cursor: pointer;
+}
+
+.card-header[role="button"]:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}
+
+{% block stream_scripts %}
+<script>
+let progressArea = document.getElementById('progressArea');
+let fileList = document.getElementById('fileList');
+let currentPhase = null;
+let currentPhaseSection = null;
+let currentPhaseContent = null;
+
+const phaseNames = {
+    'report': '简报处理',
+    'timeline': '时间轴处理',
+    'start': '基础文章生成',
+    'enrich': '文章内容丰富',
+    'review': '文章审查',
+    'banfo': 'Banfo风格处理',
+    'review_reasoning': '文章审查推理',
+    'banfo_reasoning': 'Banfo风格处理推理'
+};
+
+function createPhaseSection(phase, content) {
+    const section = document.createElement('div');
+    section.className = `phase-section phase-${phase}`;
+    
+    const header = document.createElement('div');
+    header.className = 'phase-header';
+    header.innerHTML = `
+        <div class="phase-title">${phaseNames[phase] || phaseNames[currentPhase] || '处理中'} - ${content}</div>
+        <i class="fas fa-chevron-down phase-toggle"></i>
+    `;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'phase-content';
+    
+    section.appendChild(header);
+    section.appendChild(contentDiv);
+    
+    // 添加点击事件来切换折叠状态
+    header.addEventListener('click', () => {
+        section.classList.toggle('expanded');
+    });
+    
+    return { section, contentDiv };
+}
+
+function appendProgress(text, phase) {
+    if (phase !== currentPhase || !currentPhaseSection) {
+        if (phaseNames[phase] || !currentPhaseSection) {
+            // 如果存在当前阶段的section，将其折叠
+            if (currentPhaseSection) {
+                currentPhaseSection.classList.remove('expanded');
+            }
+            
+            currentPhase = phase;
+            const { section, contentDiv } = createPhaseSection(phase, text);
+            currentPhaseSection = section;
+            currentPhaseContent = contentDiv;
+            progressArea.appendChild(section);
+            
+            // 新阶段默认展开
+            section.classList.add('expanded');
+        }
+    }
+    
+    if (currentPhaseContent) {
+        currentPhaseContent.textContent += text;
+    }
+    
+    progressArea.scrollTop = progressArea.scrollHeight;
+}
+
+function displayFiles(files) {
+    let html = '<ul class="list-group">';
+    for (let [key, path] of Object.entries(files)) {
+        const phaseNames = {
+            'base': '基础文章',
+            'enriched': '丰富后的文章',
+            'review': '审查结果',
+            'banfo': 'Banfo处理结果'
+        };
+        html += `<li class="list-group-item">
+            <strong>${phaseNames[key] || key}:</strong> 
+            <a href="/file/${encodeURIComponent(path)}" target="_blank">${path}</a>
+        </li>`;
+    }
+    html += '</ul>';
+    fileList.innerHTML = html;
+    // 显示文件列表区域
+    document.getElementById('fileListCollapse').classList.add('show');
+}
+
+async function startConversion() {
+    const filePath = document.getElementById('filePath').value;
+    if (!filePath) {
+        alert('请输入文件标识');
+        return;
+    }
+
+    // 清空之前的内容
+    progressArea.innerHTML = '';
+    fileList.innerHTML = '';
+    currentPhase = null;
+    currentPhaseSection = null;
+    currentPhaseContent = null;
+    
+    // 折叠文件列表
+    document.getElementById('fileListCollapse').classList.remove('show');
+    
+    try {
+        const response = await window.streamCallApi('/workflow/convert_article', 'POST', {
+            task_id: filePath
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(5);
+                    if (data === '[DONE]') continue;
+
+                    try {
+                        const jsonData = JSON.parse(data);
+                        if (jsonData.phase === 'complete') {
+                            displayFiles(jsonData.files);
+                        } else if (jsonData.content) {
+                            appendProgress(jsonData.content, jsonData.phase);
+                        }
+                    } catch (e) {
+                        console.error('解析数据失败:', e);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('请求失败:', error);
+        appendProgress('错误: ' + error.message, 'error');
+    }
+}
+</script>
+{% endblock %} 

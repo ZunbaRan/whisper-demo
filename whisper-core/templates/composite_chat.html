@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+
+{% block title %}组合模型对话{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">组合模型对话</h2>
+    
+    <!-- 对话历史区域 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">对话历史</h5>
+        </div>
+        <div class="card-body">
+            <div id="chatHistory" style="height: 400px; overflow-y: auto; padding: 1rem; background-color: #f8f9fa; border-radius: 0.25rem;">
+                <!-- 对话内容将在这里显示 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 输入区域 -->
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <textarea class="form-control" id="userInput" rows="3" placeholder="请输入您的问题..."></textarea>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="deepseekModel" class="form-label">DeepSeek 模型</label>
+                        <select class="form-select" id="deepseekModel">
+                            <option value="Volcengine/DeepSeek-R1">DeepSeek-R1</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="targetModel" class="form-label">目标模型</label>
+                        <select class="form-select" id="targetModel">
+                            <option value="Gemini/Gemini-2.0-Flash">Gemini-2.0-Flash</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary w-100" id="sendButton">
+                        <i class="fas fa-paper-plane"></i> 发送
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block stream_scripts %}
+<script type="text/javascript">
+console.log('脚本开始加载');
+
+// 存储对话历史
+let messages = [];
+
+// 添加消息到对话历史
+function appendMessage(role, content, type = 'content') {
+    console.log('添加消息:', role, content, type);
+    const chatHistory = document.getElementById('chatHistory');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}-message mb-3 p-3 bg-white rounded shadow-sm`;
+    
+    const roleBadge = document.createElement('span');
+    roleBadge.className = `badge ${role === 'user' ? 'bg-primary' : 'bg-success'} me-2`;
+    roleBadge.textContent = role === 'user' ? '用户' : '助手';
+    
+    const contentSpan = document.createElement('span');
+    contentSpan.className = `message-content ${type}-content`;
+    
+    if (type === 'reasoning') {
+        const reasoningBadge = document.createElement('span');
+        reasoningBadge.className = 'badge bg-info me-2';
+        reasoningBadge.textContent = '推理过程';
+        messageDiv.appendChild(reasoningBadge);
+    }
+    
+    contentSpan.textContent = content;
+    messageDiv.appendChild(roleBadge);
+    messageDiv.appendChild(contentSpan);
+    chatHistory.appendChild(messageDiv);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+    return messageDiv;
+}
+
+// 发送消息
+async function sendMessage() {
+    console.log('sendMessage 函数被调用');
+    const userInput = document.getElementById('userInput');
+    const content = userInput.value.trim();
+    
+    console.log('输入内容:', content);
+    
+    if (!content) {
+        console.log('输入内容为空，不发送');
+        return;
+    }
+    
+    // 禁用输入和发送按钮
+    userInput.disabled = true;
+    document.getElementById('sendButton').disabled = true;
+    console.log('已禁用输入和发送按钮');
+    
+    // 显示用户消息
+    appendMessage('user', content);
+    messages.push({ role: 'user', content: content });
+    console.log('已添加用户消息到历史记录');
+    
+    // 清空输入框
+    userInput.value = '';
+    
+    try {
+        // 获取选择的模型
+        const deepseekModel = document.getElementById('deepseekModel').value;
+        const targetModel = document.getElementById('targetModel').value;
+        console.log('选择的模型:', { deepseekModel, targetModel });
+        
+        // 准备请求数据
+        const requestData = {
+            messages: messages,
+            deepseek_model: deepseekModel,
+            target_model: targetModel
+        };
+        console.log('请求数据:', requestData);
+        
+        // 发送请求
+        console.log('准备发送请求到服务器');
+        const response = await window.streamCallApi('/llm/composite/chat', 'POST', requestData);
+        
+        console.log('收到服务器响应:', response);
+        
+        if (!response.ok) {
+            throw new Error('网络响应出错');
+        }
+        
+        // 处理流式响应
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantMessage = '';
+        let reasoningMessage = '';
+        let isFirstContent = true;
+        let isFirstReasoning = true;
+        let currentContentDiv = null;
+        let currentReasoningDiv = null;
+        console.log('开始处理流式响应');
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+                console.log('流式响应完成');
+                break;
+            }
+            
+            const chunk = decoder.decode(value);
+            console.log('收到数据块:', chunk);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6);
+                    if (data === '[DONE]') {
+                        console.log('收到完成标记');
+                        break;
+                    }
+                    
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (parsed.choices && parsed.choices[0].delta) {
+                            const delta = parsed.choices[0].delta;
+                            
+                            // 处理推理内容
+                            if (delta.reasoning_content) {
+                                if (isFirstReasoning) {
+                                    currentReasoningDiv = appendMessage('assistant', '', 'reasoning');
+                                    isFirstReasoning = false;
+                                }
+                                reasoningMessage += delta.reasoning_content;
+                                if (currentReasoningDiv) {
+                                    currentReasoningDiv.querySelector('.reasoning-content').textContent = reasoningMessage;
+                                }
+                            }
+                            
+                            // 处理输出内容
+                            if (delta.content) {
+                                if (isFirstContent) {
+                                    currentContentDiv = appendMessage('assistant', '');
+                                    isFirstContent = false;
+                                }
+                                assistantMessage += delta.content;
+                                if (currentContentDiv) {
+                                    currentContentDiv.querySelector('.message-content').textContent = assistantMessage;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('解析响应数据失败:', e);
+                    }
+                }
+            }
+        }
+        
+        // 保存助手消息到历史记录（包括推理和输出）
+        if (reasoningMessage) {
+            messages.push({ role: 'assistant', content: reasoningMessage, type: 'reasoning' });
+        }
+        if (assistantMessage) {
+            messages.push({ role: 'assistant', content: assistantMessage });
+        }
+        console.log('已保存助手消息到历史记录');
+        
+    } catch (error) {
+        console.error('请求失败:', error);
+        alert('发送消息失败: ' + error.message);
+    } finally {
+        // 重新启用输入和发送按钮
+        userInput.disabled = false;
+        document.getElementById('sendButton').disabled = false;
+        userInput.focus();
+        console.log('已重置界面状态');
+    }
+}
+
+// 等待 DOM 加载完成
+console.log('等待 DOM 加载完成');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM 加载完成，开始绑定事件');
+    
+    // 发送按钮点击事件
+    const sendButton = document.getElementById('sendButton');
+    console.log('找到发送按钮:', sendButton);
+    if (sendButton) {
+        sendButton.addEventListener('click', function() {
+            console.log('发送按钮被点击');
+            sendMessage();
+        });
+    } else {
+        console.error('未找到发送按钮元素');
+    }
+    
+    // 回车发送
+    const userInput = document.getElementById('userInput');
+    console.log('找到输入框:', userInput);
+    if (userInput) {
+        userInput.addEventListener('keypress', function(e) {
+            console.log('输入框按键事件触发:', e.key);
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                console.log('触发回车发送');
+                sendMessage();
+            }
+        });
+    } else {
+        console.error('未找到输入框元素');
+    }
+});
+
+// 立即执行一些检查
+console.log('检查页面元素:');
+console.log('发送按钮:', document.getElementById('sendButton'));
+console.log('输入框:', document.getElementById('userInput'));
+console.log('聊天历史:', document.getElementById('chatHistory'));
+</script>
+
+<style>
+.message {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.user-message {
+    margin-left: 2rem;
+}
+
+.assistant-message {
+    margin-right: 2rem;
+}
+
+.message-content {
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+}
+
+/* 推理内容的特殊样式 */
+.message .reasoning-content {
+    display: block;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #666;
+    font-style: italic;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-left: 3px solid #17a2b8;
+    margin-top: 0.8rem;
+    line-height: 2;
+    letter-spacing: 0.03em;
+}
+
+.badge {
+    font-size: 0.8rem;
+    padding: 0.3em 0.6em;
+    margin-bottom: 0.5rem;
+    display: inline-block;
+}
+
+/* 调整推理内容的段落间距 */
+.reasoning-content p {
+    margin-bottom: 1rem;
+}
+
+/* 确保最后一个段落没有多余的底部间距 */
+.reasoning-content p:last-child {
+    margin-bottom: 0;
+}
+</style>
+{% endblock %} 
