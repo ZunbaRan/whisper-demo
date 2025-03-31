@@ -109,7 +109,8 @@ class BaseClient(ABC):
                     headers=headers, 
                     json=data, 
                     timeout=request_timeout,
-                    proxy=self.proxy
+                    proxy=self.proxy,
+                    verify_ssl=False,
                 ) as response:
                     # 检查响应状态
                     if not response.ok:

@@ -28,7 +28,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.transcriber import TranscriptionConfig
-from config.paths import PROJECT_ROOT
+# from config.paths import PROJECT_ROOT
 from services import (
     TranscriptionService,
     DownloadService,
@@ -80,37 +80,37 @@ app = FastAPI(
 )
 
 # 配置信息
-MODELS_DIR = PROJECT_ROOT + "/models"
-WHISPER_MODEL_NAME = "large-v3-turbo"
-ALIGN_MODEL_DIR = f"{MODELS_DIR}/wav2vec2_base"
-PYANNOTE_CONFIG_PATH = PROJECT_ROOT + "/config/pyannote_config.yaml"
+# MODELS_DIR = PROJECT_ROOT + "/models"
+# WHISPER_MODEL_NAME = "large-v3-turbo"
+# ALIGN_MODEL_DIR = f"{MODELS_DIR}/wav2vec2_base"
+# PYANNOTE_CONFIG_PATH = PROJECT_ROOT + "/config/pyannote_config.yaml"
 
 # 使用 CUDA
 device = "cuda"
 
 # 基础配置
-config = TranscriptionConfig(
-    whisper_model_name=WHISPER_MODEL_NAME,
-    whisper_download_root=MODELS_DIR,
-    device=device,
-    device_index=0,
-    compute_type="float16",
-    align_model_dir=ALIGN_MODEL_DIR,
-    pyannote_config_path=PYANNOTE_CONFIG_PATH,
-    language="en",
-    diarize=True,
-    output_dir="./output",
-    output_format="json",
-)
-
-# 初始化服务
-transcription_service = TranscriptionService(config)
+# config = TranscriptionConfig(
+#     whisper_model_name=WHISPER_MODEL_NAME,
+#     whisper_download_root=MODELS_DIR,
+#     device=device,
+#     device_index=0,
+#     compute_type="float16",
+#     align_model_dir=ALIGN_MODEL_DIR,
+#     pyannote_config_path=PYANNOTE_CONFIG_PATH,
+#     language="en",
+#     diarize=True,
+#     output_dir="./output",
+#     output_format="json",
+# )
+#
+# # 初始化服务
+# transcription_service = TranscriptionService(config)
 
 # 初始化下载服务
 download_service = DownloadService()
 
 # 初始化工作流服务
-workflow_service = WorkflowService(transcription_service)
+# workflow_service = WorkflowService(transcription_service)
 
 # 初始化 RSS 服务
 rss_service = RssService()
@@ -148,18 +148,18 @@ async def download_single_audio(id: str):
     return await download_service.download_single_file(id)
 
 
-@app.post("/transcribe", response_model=TranscriptionResponse)
-async def transcribe_audio(request: TranscriptionRequest):
-    """
-    处理音频转写请求
-    
-    Parameters:
-    - audio_path: 音频文件路径
-    
-    Returns:
-    - TranscriptionResponse: 包含转写结果的响应对象
-    """
-    return await transcription_service.transcribe_audio(request.audio_path)
+# @app.post("/transcribe", response_model=TranscriptionResponse)
+# async def transcribe_audio(request: TranscriptionRequest):
+#     """
+#     处理音频转写请求
+#
+#     Parameters:
+#     - audio_path: 音频文件路径
+#
+#     Returns:
+#     - TranscriptionResponse: 包含转写结果的响应对象
+#     """
+#     return await transcription_service.transcribe_audio(request.audio_path)
 
 
 @app.get("/download/pending", response_model=DownloadResponse)
@@ -172,11 +172,11 @@ async def download_pending_audio():
     """
     return await download_service.download_pending_files()
 
-
-@app.get("/transcribe/batch", response_model=BatchTranscriptionResponse)
-async def batch_transcribe_audio():
-    """批量转写已下载的音频文件"""
-    return await transcription_service.batch_transcribe_downloaded_audio()
+#
+# @app.get("/transcribe/batch", response_model=BatchTranscriptionResponse)
+# async def batch_transcribe_audio():
+#     """批量转写已下载的音频文件"""
+#     return await transcription_service.batch_transcribe_downloaded_audio()
 
 
 @app.get("/rss/download/{feed_name}", response_model=Dict[str, Any])
@@ -256,10 +256,10 @@ async def get_database_stats():
     return db_service.get_stats()
 
 
-@app.get("/workflow/feed/{feed_name}", response_model=Dict[str, Any])
-async def run_feed_workflow(feed_name: str, limit: int = 10):
-    """处理指定 feed 的工作流程"""
-    return await workflow_service.run_feed_workflow(feed_name, limit)
+# @app.get("/workflow/feed/{feed_name}", response_model=Dict[str, Any])
+# async def run_feed_workflow(feed_name: str, limit: int = 10):
+#     """处理指定 feed 的工作流程"""
+#     return await workflow_service.run_feed_workflow(feed_name, limit)
 
 
 @app.post("/db/clear", response_model=Dict[str, bool])
@@ -465,30 +465,30 @@ def start_app():
     uvicorn.run("whisper-core.api.api:app", host="0.0.0.0", port=8001, reload=True)
 
 
-@app.post("/workflow/entry/{entry_id}", response_model=Dict[str, Any])
-async def process_single_entry(entry_id: str):
-    """
-    处理单个条目的下载和转写
-    
-    Parameters:
-    - entry_id: 条目的唯一标识符
-    
-    Returns:
-    - Dict: 包含处理结果的响应对象，包括：
-        - id: 条目ID
-        - title: 条目标题
-        - success: 是否处理成功
-        - steps: 处理步骤的详细信息
-        - error: 如果处理失败，包含错误信息
-    """
-    try:
-        result = await workflow_service.process_single_entry(entry_id)
-        return result
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"处理条目失败: {str(e)}"
-        )
+# @app.post("/workflow/entry/{entry_id}", response_model=Dict[str, Any])
+# async def process_single_entry(entry_id: str):
+#     """
+#     处理单个条目的下载和转写
+#
+#     Parameters:
+#     - entry_id: 条目的唯一标识符
+#
+#     Returns:
+#     - Dict: 包含处理结果的响应对象，包括：
+#         - id: 条目ID
+#         - title: 条目标题
+#         - success: 是否处理成功
+#         - steps: 处理步骤的详细信息
+#         - error: 如果处理失败，包含错误信息
+#     """
+#     try:
+#         result = await workflow_service.process_single_entry(entry_id)
+#         return result
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500,
+#             detail=f"处理条目失败: {str(e)}"
+#         )
 
 
 @app.get("/output/{entry_id}.txt")
@@ -707,12 +707,24 @@ async def deep_research(
             async for chunk in deep_research.astream_deep_research(chat_request, question):
                 chunk_str = chunk.decode('utf-8')
                 if chunk_str.startswith('data: '):
-                    data = json.loads(chunk_str[6:])
-                    if data == "[DONE]":
+                    if str.replace(chunk_str[6:], "\n", "", ) == "[PLANNING_DONE]":
                         print("\n" + "-" * 50)
-                        print("研究完成")
+                        print("规划完成")
                         yield chunk
-                        break
+                        pass
+
+                    try:
+                        data = json.loads(chunk_str[6:])
+                        if data == "[DONE]":
+                            print("\n" + "-" * 50)
+                            print("研究完成")
+                            yield chunk
+                            break
+                        else:
+                            pass
+                    except Exception as e:
+                        print("出现错误")
+                        print(e)
 
                     # 处理元数据
                     if 'metadata' in data:
@@ -720,7 +732,10 @@ async def deep_research(
                         if metadata.get('search_state') == 'searching':
                             print(f"\n正在搜索关键词：{', '.join(metadata['search_keywords'])}")
                         elif metadata.get('search_state') == 'searched':
-                            print(f"搜索完成，找到 {len(metadata['search_results'])} 条结果")
+                            if metadata.get('search_keywords'):
+                                print(f"搜索完成，找到 {len(metadata['search_results'])} 条结果")
+                            else:
+                                print("搜索完成---")
                         yield chunk
                         continue
 

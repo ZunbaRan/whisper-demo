@@ -203,11 +203,23 @@ class DeepResearch(BaseModel):
         """
         references = ResultsSummary()
         buffered_reasoning_content = ""
+        buffered_content = ""
 
         # 1. 流式推理
         async for chunk in self.astream_planning(request, question, references):
-            buffered_reasoning_content += chunk.decode('utf-8')
-            yield chunk
+            # buffered_reasoning_content += chunk.decode('utf-8')
+            chunk_str = chunk.decode('utf-8')
+            if str.replace(chunk_str[6:], "\n", "", ) == "[PLANNING_DONE]":
+                print("\n" + "@@@@@@@@@@" * 50)
+                continue
+            data = json.loads(chunk_str[6:])
+            if 'choices' in data and data['choices'][0]['delta']:
+                delta = data['choices'][0]['delta']
+                if delta.get('reasoning_content'):
+                    buffered_reasoning_content += delta['reasoning_content']
+                if delta.get('content'):
+                    buffered_content += delta['content']
+                yield chunk
 
         # 2. 流式总结
         request.messages.append(
@@ -291,7 +303,7 @@ class DeepResearch(BaseModel):
             new_queries = self.check_query(planning_result)
             if not new_queries:
                 # 生成完成状态元数据
-                response = self._create_openai_response(metadata={'search_state': 'searched'})
+                response = self._create_openai_response(metadata={'search_state': 'finished'})
                 yield response.encode('utf-8')
                 break
             else:
@@ -319,7 +331,7 @@ class DeepResearch(BaseModel):
                 for search_result in search_results:
                     references.add_result(query=search_result.query, results=[search_result])
 
-        yield b'data: [DONE]\n\n'
+        yield b'data: [PLANNING_DONE]\n\n'
 
     @classmethod
     def check_query(cls, output: str) -> Optional[List[str]]:
