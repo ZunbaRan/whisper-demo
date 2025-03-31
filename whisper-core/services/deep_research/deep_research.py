@@ -75,10 +75,10 @@ class DeepResearch(BaseModel):
         arbitrary_types_allowed = True
 
     def _create_openai_response(
-        self,
-        content: str = "",
-        reasoning_content: str = "",
-        metadata: Optional[Dict[str, Any]] = None
+            self,
+            content: str = "",
+            reasoning_content: str = "",
+            metadata: Optional[Dict[str, Any]] = None
     ) -> str:
         """创建 OpenAI 格式的响应"""
         response = {
@@ -107,7 +107,14 @@ class DeepResearch(BaseModel):
                         {
                             'query': result.query,
                             'summary_content': result.summary_content,
-                            'search_references': result.search_references
+                            'search_references': [
+                                {
+                                    'url': ref.url,
+                                    'content': ref.content,
+                                    'site': ref.site,
+                                    'title': ref.title
+                                } for ref in result.search_references
+                            ] if result.search_references else []
                         } for result in value
                     ]
                 else:
@@ -154,10 +161,10 @@ class DeepResearch(BaseModel):
                 content=buffered_reasoning_content,
             )
         )
-        
+
         client, _ = llm_service_manager.get_client(self.summary_model)
         messages = [msg.dict() for msg in request.messages]
-        
+
         if self.extra_config.summary_template:
             system_message = Message(
                 role="system",
@@ -212,7 +219,7 @@ class DeepResearch(BaseModel):
 
         client, config = llm_service_manager.get_client(self.summary_model)
         messages = [msg.dict() for msg in request.messages]
-        
+
         if self.extra_config.summary_template:
             system_message = Message(
                 role="system",
@@ -284,7 +291,7 @@ class DeepResearch(BaseModel):
             new_queries = self.check_query(planning_result)
             if not new_queries:
                 # 生成完成状态元数据
-                response = self._create_openai_response(metadata={'search_state': 'finished'})
+                response = self._create_openai_response(metadata={'search_state': 'searched'})
                 yield response.encode('utf-8')
                 break
             else:
@@ -326,4 +333,4 @@ class DeepResearch(BaseModel):
         """
         if '无需' in output:
             return None
-        return [o.strip() for o in output.split(';')] 
+        return [o.strip() for o in output.split(';')]

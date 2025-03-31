@@ -3,17 +3,17 @@ import json
 from typing import Dict, List, Any, Optional, AsyncGenerator, Tuple
 from pathlib import Path
 
-
 from services.review.review_article_service import review_article_service
 from services.llm.utils.logger import logger
 from services.llm.manager.llm_service_manager import llm_service_manager
-from services.llm.composite.composite import CompatibleComposite
+
 
 class LongTextToSimpleArticle:
     """
     长文本转简单文章的处理类
     主要功能：将长文本（如播客文字稿）转换为结构化的文章
     """
+
     def __init__(self):
         # 提示词文件目录
         self.prompt_dir = 'src/prompt/long_text'
@@ -25,7 +25,8 @@ class LongTextToSimpleArticle:
             'current_working_dir': os.getcwd()
         })
 
-    async def process_stream_response(self, stream: AsyncGenerator[str, None], phase: str) -> Tuple[List[str], AsyncGenerator[str, None]]:
+    async def process_stream_response(self, stream: AsyncGenerator[str, None], phase: str) -> Tuple[
+        List[str], AsyncGenerator[str, None]]:
         """
         处理流式响应的核心方法
         
@@ -57,7 +58,7 @@ class LongTextToSimpleArticle:
             accumulated_length = len(''.join(accumulated_content))
             # 如果内容太长，也需要发送
             content_too_long = accumulated_length > 100
-            
+
             return has_punctuation or has_newline or content_too_long
 
         async def process_stream() -> AsyncGenerator[str, None]:
@@ -82,17 +83,17 @@ class LongTextToSimpleArticle:
                     try:
                         # 解析JSON数据
                         data = json.loads(chunk_str.replace('data: ', ''))
-                        
+
                         # 处理不同类型的响应
                         if 'choices' in data and data['choices'] and 'delta' in data['choices'][0]:
                             delta = data['choices'][0]['delta']
-                            
+
                             # 处理推理内容
                             if 'reasoning_content' in delta and delta['reasoning_content']:
                                 content = delta['reasoning_content']
                                 content_parts.append(content)
                                 current_content.append(content)
-                                
+
                                 if should_send_content(content, current_content):
                                     response = {
                                         'phase': f"{phase}_reasoning",
@@ -100,13 +101,13 @@ class LongTextToSimpleArticle:
                                     }
                                     yield f"data: {json.dumps(response, ensure_ascii=False)}\n\n"
                                     current_content.clear()
-                            
+
                             # 处理普通内容
                             if 'content' in delta and delta['content']:
                                 content = delta['content']
                                 content_parts.append(content)
                                 current_content.append(content)
-                                
+
                                 if should_send_content(content, current_content):
                                     response = {
                                         'phase': phase,
@@ -114,13 +115,13 @@ class LongTextToSimpleArticle:
                                     }
                                     yield f"data: {json.dumps(response, ensure_ascii=False)}\n\n"
                                     current_content.clear()
-                        
+
                         # 处理普通的 content 字段（兼容旧格式）
                         elif 'content' in data and data['content']:
                             content = data['content']
                             content_parts.append(content)
                             current_content.append(content)
-                            
+
                             if should_send_content(content, current_content):
                                 response = {
                                     'phase': phase,
@@ -128,7 +129,7 @@ class LongTextToSimpleArticle:
                                 }
                                 yield f"data: {json.dumps(response, ensure_ascii=False)}\n\n"
                                 current_content.clear()
-                            
+
                     except json.JSONDecodeError:
                         pass
 
@@ -199,17 +200,17 @@ class LongTextToSimpleArticle:
             'phase': phase,
             'model': "Gemini/Gemini-2.0-Flash-thinking"
         })
-        
+
         result = llm_service_manager.get_client("Gemini/Gemini-2.0-Flash-thinking")
         client, config = result
 
         # 用于收集内容片段
         content_parts = []
-        
+
         # 进行流式对话
         async for role, content in client.stream_chat(
-            messages=messages,
-            model=config.model_id
+                messages=messages,
+                model=config.model_id
         ):
             # 实时打印响应内容
             print(content, end="", flush=True)
@@ -225,10 +226,10 @@ class LongTextToSimpleArticle:
 
         # 合并所有内容
         full_content = ''.join(content_parts)
-        
+
         # 保存处理结果
         output_file = self.save_phase_result(full_content, task_id, phase)
-        
+
         logger.info('提示词处理完成', extra={
             'task_id': task_id,
             'phase': phase,
@@ -257,7 +258,7 @@ class LongTextToSimpleArticle:
             'task_id': task_id,
             'current_working_dir': os.getcwd()
         })
-        
+
         # 验证文件存在
         absolute_path = await self.check_file_exists(file_path)
 
@@ -265,13 +266,13 @@ class LongTextToSimpleArticle:
         content_text = await self.read_file(absolute_path)
 
         # 读取 services/workflow/prompt/report.md 文件
-        report_path = os.path.join("services/workflow/prompt/", 'report.md')   # 简报文件
+        report_path = os.path.join("services/workflow/prompt/", 'report.md')  # 简报文件
         report_content = await self.read_file(report_path)
         # 替换 report_content 中的 {text} 为 content_text
         report_content_prompt = report_content.replace('{text}', content_text)
 
         # 读取 services/workflow/prompt/timeline.md 文件
-        timeline_path = os.path.join("services/workflow/prompt/", 'timeline.md')   # 时间轴文件
+        timeline_path = os.path.join("services/workflow/prompt/", 'timeline.md')  # 时间轴文件
         timeline_content = await self.read_file(timeline_path)
         # 替换 timeline_content 中的 {text} 为 content_text
         timeline_content_prompt = timeline_content.replace('{text}', content_text)
@@ -333,13 +334,15 @@ class LongTextToSimpleArticle:
         free_banfo_results = ''.join(content_parts)
         banfo_file = self.save_phase_result(free_banfo_results, task_id, 'banfo')
 
-        # 发送完成信号，包含所有生成文件的路径
-        yield f"data: {json.dumps({'phase': 'complete', 'content': '文章生成完成', 'files': {
+        dump = json.dumps({'phase': 'complete', 'content': '文章生成完成', 'files': {
             'base': str(base_article_file),
             'enriched': str(enriched_article_file),
             'review': str(review_file),
             'banfo': str(banfo_file)
-        }}, ensure_ascii=False)}\n\n"
+        }}, ensure_ascii=False)
+
+        # 发送完成信号，包含所有生成文件的路径
+        yield f"data: {dump}\n\n"
         yield "data: [DONE]\n\n"
 
     async def base_article(self, context_file_path: str) -> AsyncGenerator[str, None]:
@@ -378,8 +381,8 @@ class LongTextToSimpleArticle:
         # 进行流式对话
         full_response = []  # 用于收集完整响应
         async for role, content in client.stream_chat(
-            messages=messages,
-            model=config.model_id
+                messages=messages,
+                model=config.model_id
         ):
             # 实时打印响应内容
             print(content, end="", flush=True)
@@ -398,7 +401,8 @@ class LongTextToSimpleArticle:
         # 发送结束标记
         yield "data: [DONE]\n\n"
 
-    async def enrich_article(self, base_article: str, timeline_file_path: str, report_file_path: str) -> AsyncGenerator[str, None]:
+    async def enrich_article(self, base_article: str, timeline_file_path: str, report_file_path: str) -> AsyncGenerator[
+        str, None]:
         """
         结合时间轴和简报丰富文章内容
         """
@@ -433,8 +437,8 @@ class LongTextToSimpleArticle:
 
         full_response = []  # 用于收集完整响应
         async for role, content in client.stream_chat(
-            messages=messages,
-            model=config.model_id
+                messages=messages,
+                model=config.model_id
         ):
             # 打印每个片段的内容（不换行）
             print(content, end="", flush=True)
@@ -467,26 +471,26 @@ class LongTextToSimpleArticle:
             # 尝试直接解析整个响应
             return json.loads(content)
 
-    async def fix_json_with_backup_model(self, content: str) -> Any:
-        """
-        使用备用模型修复 JSON
-        """
-        prompt = f"""当前内容在程序中检测不符合 json 格式, 请你帮忙处理为正确的 json 格式并返回，
-        只返回调整好的 json 文本即可，不要加入其他的说明和标识.
-        当前内容为：
-        {content}"""
-
-        messages = [
-            {'role': 'user', 'content': prompt}
-        ]
-
-        response = await openai_client.chat(
-            messages=messages,
-            model='deepseek-chat',
-            temperature=1.0
-        )
-
-        return json.loads(response['choices'][0]['message']['content'])
+    # async def fix_json_with_backup_model(self, content: str) -> Any:
+    #     """
+    #     使用备用模型修复 JSON
+    #     """
+    #     prompt = f"""当前内容在程序中检测不符合 json 格式, 请你帮忙处理为正确的 json 格式并返回，
+    #     只返回调整好的 json 文本即可，不要加入其他的说明和标识.
+    #     当前内容为：
+    #     {content}"""
+    #
+    #     messages = [
+    #         {'role': 'user', 'content': prompt}
+    #     ]
+    #
+    #     response = await openai_client.chat(
+    #         messages=messages,
+    #         model='deepseek-chat',
+    #         temperature=1.0
+    #     )
+    #
+    #     return json.loads(response['choices'][0]['message']['content'])
 
     async def check_file_exists(self, file_path: str) -> str:
         """
@@ -503,7 +507,7 @@ class LongTextToSimpleArticle:
         """
         # 转换为绝对路径
         absolute_path = file_path if os.path.isabs(file_path) else os.path.join(os.getcwd(), file_path)
-        
+
         logger.info('检查文件是否存在', extra={
             'file_path': file_path,
             'absolute_path': absolute_path,
@@ -520,7 +524,7 @@ class LongTextToSimpleArticle:
                 'current_working_dir': os.getcwd()
             })
             raise FileNotFoundError(f'文件不存在: {file_path}')
-            
+
         return absolute_path
 
     async def read_file(self, absolute_path: str) -> str:
@@ -543,7 +547,7 @@ class LongTextToSimpleArticle:
             'file_exists': os.path.exists(absolute_path),
             'file_size': os.path.getsize(absolute_path) if os.path.exists(absolute_path) else 0
         })
-        
+
         try:
             # 读取文件
             with open(absolute_path, 'r', encoding='utf-8') as f:
@@ -556,7 +560,7 @@ class LongTextToSimpleArticle:
                     'content_length': len(content)
                 })
                 raise ValueError(f'文件内容为空: {absolute_path}')
-                
+
             logger.info('文件读取成功', extra={
                 'absolute_path': absolute_path,
                 'content_length': len(content)
