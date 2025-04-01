@@ -4,6 +4,7 @@ from datetime import datetime
 
 from services.deep_research.deep_research import DeepResearch
 from services.deep_research.models import ChatRequest, Message
+from services.deep_research.markdown_report import MarkdownReport
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(current_dir))
@@ -698,6 +699,7 @@ async def deep_research(
 
     # 创建深度研究实例
     deep_research = DeepResearch()
+    report = MarkdownReport(question)
 
     print(f"\n开始深度研究问题：{question}")
     print("-" * 50)
@@ -710,6 +712,7 @@ async def deep_research(
                     if str.replace(chunk_str[6:], "\n", "", ) == "[PLANNING_DONE]":
                         print("\n" + "-" * 50)
                         print("规划完成")
+                        report.add_planning_done()
                         yield chunk
                         pass
 
@@ -718,6 +721,7 @@ async def deep_research(
                         if data == "[DONE]":
                             print("\n" + "-" * 50)
                             print("研究完成")
+                            report.add_research_done()
                             yield chunk
                             break
                         else:
@@ -730,10 +734,28 @@ async def deep_research(
                     if 'metadata' in data:
                         metadata = data['metadata']
                         if metadata.get('search_state') == 'searching':
-                            print(f"\n正在搜索关键词：{', '.join(metadata['search_keywords'])}")
+                            search_keywords = metadata['search_keywords']
+                            print(f"\n正在搜索关键词：{', '.join(search_keywords)}")
+                            report.add_search_keywords(search_keywords)
                         elif metadata.get('search_state') == 'searched':
                             if metadata.get('search_keywords'):
-                                print(f"搜索完成，找到 {len(metadata['search_results'])} 条结果")
+                                search_results = metadata['search_results']
+                                print(f"搜索完成，找到 {len(search_results)} 条结果")
+                                
+                                # 打印搜索结果
+                                for idx, result in enumerate(search_results, 1):
+                                    print(f"\n结果 {idx}:")
+                                    print(f"查询词: {result['query']}")
+                                    print(f"摘要: {result['summary_content']}")
+                                    print("参考来源:")
+                                    for ref in result['search_references']:
+                                        print(f"- {ref['title']}")
+                                        print(f"  来源: {ref['site']}")
+                                        print(f"  链接: {ref['url']}")
+                                        print(f"  内容: {ref['content'][:200]}...")
+                                    
+                                    # 存储单个搜索结果
+                                    report.add_search_result(result)
                             else:
                                 print("搜索完成---")
                         yield chunk
@@ -743,18 +765,18 @@ async def deep_research(
                     if 'choices' in data and data['choices'][0]['delta']:
                         delta = data['choices'][0]['delta']
                         if delta.get('reasoning_content'):
-                            print(delta['reasoning_content'], end='', flush=True)
+                            content = delta['reasoning_content']
+                            print(content, end='', flush=True)
+                            report.add_content(content)
                         if delta.get('content'):
-                            print(delta['content'], end='', flush=True)
+                            content = delta['content']
+                            print(content, end='', flush=True)
+                            report.add_content(content)
                         yield chunk
-        else:
-            response = await deep_research.arun_deep_research(chat_request, question)
-            print("\n推理过程：")
-            print(response.choices[0]['message']['reasoning_content'])
-            print("\n最终答案：")
-            print(response.choices[0]['message']['content'])
-            yield f"data: {json.dumps(response.dict(), ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n"
+
+            # 保存 markdown 文档
+            filename = report.save()
+            print(f"\n研究报告已保存到: {filename}")
 
     return StreamingResponse(
         generate_response(),
