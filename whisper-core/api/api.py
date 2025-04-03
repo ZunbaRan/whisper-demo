@@ -717,15 +717,16 @@ async def deep_research(
                         pass
 
                     try:
-                        data = json.loads(chunk_str[6:])
-                        if data == "[DONE]":
+                        if chunk_str[6:12] == "[DONE]":
                             print("\n" + "-" * 50)
                             print("研究完成")
                             report.add_research_done()
                             yield chunk
                             break
-                        else:
-                            pass
+
+                        data = json.loads(chunk_str[6:])
+                        pass
+
                     except Exception as e:
                         print("出现错误")
                         print(e)
