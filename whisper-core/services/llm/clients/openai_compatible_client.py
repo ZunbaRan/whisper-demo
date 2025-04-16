@@ -97,7 +97,7 @@ class OpenAICompatibleClient(BaseClient):
             logger.error(error_msg)
             raise ClientError(error_msg)
 
-    async def  stream_chat(
+    async def stream_chat(
             self,
             messages: list,
             model: str = "deepseek-ai/DeepSeek-R1",
