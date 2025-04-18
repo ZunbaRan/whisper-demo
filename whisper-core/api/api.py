@@ -632,7 +632,7 @@ async def convert_article(
     请求体需要包含文件路径
     """
     try:
-        file_path = 'G:/project/whis-server/whisper-demo/whisper-core/output/' + request.get('task_id') + '.txt'
+        file_path = 'output/' + request.get('task_id') + '.txt'
 
         if not file_path:
             return JSONResponse(
@@ -777,6 +777,85 @@ async def deep_research(
             # 保存 markdown 文档
             filename = report.save()
             print(f"\n研究报告已保存到: {filename}")
+
+    return StreamingResponse(
+        generate_response(),
+        media_type="text/event-stream"
+    )
+
+
+@app.post("/llm/test_gemini")
+async def test_gemini(
+    messages: List[Dict[str, str]] = Body(
+        ...,
+        example=[{
+            "role": "user",
+            "content": "你好，请介绍一下你自己"
+        }]
+    ),
+    model_name: str = Body(
+        "Gemini/Gemini-2.0-Flash",
+        description="要使用的 Gemini 模型名称"
+    )
+):
+    """测试 Gemini 模型调用
+
+    Args:
+        messages: 对话消息列表
+        model_name: 要使用的 Gemini 模型名称
+
+    Returns:
+        StreamingResponse: 流式响应
+    """
+    print(f"\n开始测试 Gemini 模型: {model_name}")
+    print(f"输入消息: {json.dumps(messages, ensure_ascii=False, indent=2)}")
+    print("\n模型响应内容:")
+
+    async def generate_response():
+        try:
+            # 获取客户端和配置
+            result = llm_service_manager.get_client(model_name)
+            if not result:
+                raise ValueError(f"无法获取模型 {model_name} 的客户端")
+
+            client, config = result
+
+            # 打印请求信息
+            print(f"请求地址: {config.api_base_url + config.api_request_address}")
+            print(f"模型ID: {config.model_id}")
+            if client.proxy:
+                print(f"使用代理: {client.proxy}")
+
+            full_response = []  # 用于收集完整响应
+            async for role, content in client.stream_chat(
+                messages=messages,
+                model=config.model_id
+            ):
+                # 打印每个片段的内容（不换行）
+                print(content, end="", flush=True)
+
+                full_response.append(content)
+                response_data = {
+                    "role": role,
+                    "content": content
+                }
+                yield f"data: {json.dumps(response_data, ensure_ascii=False)}\n\n"
+
+            # 打印完整响应的分隔线
+            print("\n" + "-" * 50)
+
+            yield "data: [DONE]\n\n"
+
+        except Exception as e:
+            error_msg = f"测试 Gemini 调用失败: {str(e)}"
+            print(f"\n{error_msg}")
+            print("-" * 50 + "\n")
+
+            error_data = {
+                "error": error_msg
+            }
+            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
 
     return StreamingResponse(
         generate_response(),

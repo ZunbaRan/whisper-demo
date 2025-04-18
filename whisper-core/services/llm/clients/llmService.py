@@ -5,6 +5,7 @@ from typing import List, Dict, Optional, AsyncGenerator
 
 from services.llm.manager.model_manager import ModelConfig, model_manager
 from services.llm.clients.openai_compatible_client import OpenAICompatibleClient
+from services.llm.clients.gemini_client import GeminiClient
 from services.llm.utils.logger import logger
 
 
@@ -43,35 +44,23 @@ class LLMService:
             logger.info(f"proxy_open: {proxy_open}")
 
             # 根据模型名称选择对应的客户端
-            # if model_name.startswith("Gemini/"):
-            #     return GeminiClient(
-            #         api_key=config.api_key,
-            #         api_url=config.api_base_url,
-            #         model=config.model_id,
-            #         proxy=proxy
-            #     )
-            # elif model_name.startswith("Claude/"):
-            #     return ClaudeClient(
-            #         api_key=config.api_key,
-            #         api_url=config.api_base_url,
-            #         provider=config.model_format,
-            #         proxy=proxy
-            #     )
-            # elif model_name.startswith("DeepSeek/"):
-            #     return DeepSeekClient(
-            #         api_key=config.api_key,
-            #         api_url=config.api_base_url,
-            #         proxy=proxy
-            #     )
-            # else:
+            if model_name.startswith("Gemini/"):
+                return GeminiClient(
+                    api_key=config.api_key,
+                    api_url=config.api_base_url,
+                    api_request_address=config.api_request_address,
+                    proxy=proxy,
+                    reasoner=reasoner
+                ), config
+            else:
                 # 默认使用 OpenAI 兼容客户端
-            return OpenAICompatibleClient(
-                api_key=config.api_key,
-                api_url=config.api_base_url,
-                api_request_address=config.api_request_address,
-                proxy=proxy,
-                reasoner=reasoner
-            ), config
+                return OpenAICompatibleClient(
+                    api_key=config.api_key,
+                    api_url=config.api_base_url,
+                    api_request_address=config.api_request_address,
+                    proxy=proxy,
+                    reasoner=reasoner
+                ), config
 
         except Exception as e:
             logger.error(f"创建客户端失败: {e}")

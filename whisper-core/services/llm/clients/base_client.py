@@ -56,6 +56,16 @@ class BaseClient(ABC):
             self.proxy = proxy
         logger.info(f"设置代理: {self.proxy}")
 
+    @abstractmethod
+    def _patch_proxy(self, client, proxy: str) -> None:
+        """为客户端应用代理补丁，由子类实现
+
+        Args:
+            client: 需要补丁的客户端实例
+            proxy: 代理服务器地址
+        """
+        pass
+
     async def _make_request(
         self, headers: dict, data: dict, timeout: Optional[aiohttp.ClientTimeout] = None
     ) -> AsyncGenerator[bytes, None]:

@@ -3,6 +3,7 @@
 from typing import Dict, Optional, Tuple
 from ..clients.base_client import BaseClient
 from ..clients.openai_compatible_client import OpenAICompatibleClient
+from ..clients.gemini_client import GeminiClient
 from ..utils.logger import logger
 from .model_manager import model_manager, ModelConfig
 
@@ -66,14 +67,24 @@ class LLMServiceManager:
             proxy_open, proxy_address = model_manager.get_proxy_config()
             proxy = proxy_address if proxy_open else None
 
-            # 创建客户端实例
-            client = OpenAICompatibleClient(
-                api_key=config.api_key,
-                api_url=config.api_base_url,
-                api_request_address=config.api_request_address,
-                proxy=proxy,
-                reasoner=reasoner
-            )
+            # 根据模型类型创建对应的客户端
+            if model_name.startswith("Gemini/"):
+                client = GeminiClient(
+                    api_key=config.api_key,
+                    api_url=config.api_base_url,
+                    api_request_address=config.api_request_address,
+                    proxy=proxy,
+                    reasoner=reasoner
+                )
+            else:
+                # 默认使用 OpenAI 兼容客户端
+                client = OpenAICompatibleClient(
+                    api_key=config.api_key,
+                    api_url=config.api_base_url,
+                    api_request_address=config.api_request_address,
+                    proxy=proxy,
+                    reasoner=reasoner
+                )
 
             return client, config
 
