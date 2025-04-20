@@ -28,6 +28,7 @@ class OutputManager:
         file_path = os.path.join(output_path, f"{step_name}.json")
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+
             
     def get_step_output(self, step_name: str) -> Dict[str, Any]:
         """获取步骤输出
@@ -65,3 +66,17 @@ class OutputManager:
             Dict[str, Dict[str, Any]]: 所有输出数据
         """
         return self.outputs.copy() 
+    
+    def save_str_file(self, step_name: str, data: str) -> None:
+        """保存到文件
+        
+        Args:
+            step_name: 步骤名称
+            data: 要保存的数据
+        """
+        file_path = os.path.join(self.output_dir, self.tid, f"{step_name}.txt")
+        if not os.path.exists(file_path):
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(data)

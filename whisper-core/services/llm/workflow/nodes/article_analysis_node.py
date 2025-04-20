@@ -50,7 +50,6 @@ class ArticleAnalysisNode(Node):
             
             for article in articles:
                 logger.info(f"开始分析文章: {article['filename']}")
-                yield 'assistant',  f'开始分析文章: {article["filename"]}'
                 
                 async for result in self.agent.call(
                     content=article["content"],
@@ -59,22 +58,22 @@ class ArticleAnalysisNode(Node):
                 ):
                     yield result
                     
-            yield 'assistant', '所有文章分析完成'
             
-    async def process_output(self, processed_results: str) -> None:
+    async def process_output(self, processed_results: List[Tuple[str, str]]) -> None:
         """处理输出数据"""
         logger.info("处理文章分析输出")
-        
-        # 提取分析结果
-        json_data = json.loads(processed_results)
-  
-        logger.info("获取批量分析结果")
+
+        # 提取元组集合中所有的 content 部分
+        content_list = [result[1] for result in processed_results]
+        content_str = "".join(content_list)  # 使用空字符串拼接
+    
+        logger.info(f"获取批量分析结果: {content_str}")
         self.outputs = {
-            "analyses": json_data
+            "analyses": content_str
         }
-            
-        logger.info(f"文章分析节点输出: {json.dumps(self.outputs, ensure_ascii=False, indent=2)}")
-            
+
+        logger.info(f"文章分析节点输出: {content_str}")
+
     async def _read_markdown_files(self, dir_path: str) -> List[Dict[str, str]]:
         """读取目录中的所有markdown文件"""
         logger.info(f"读取目录中的markdown文件: {dir_path}")

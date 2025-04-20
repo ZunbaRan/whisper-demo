@@ -60,9 +60,9 @@ class BaseAgent(ABC):
             await self.post_process()
 
         except Exception as e:
-            error_msg = f"Agent处理失败: {str(e)}"
-            logger.error(error_msg)
-            yield ("error", error_msg)
+            error_msg = f"Agent处理失败: {e.__traceback__}"
+            logger.error(e.__traceback__)
+            yield "error", error_msg
 
     @abstractmethod
     async def pre_process(self) -> None:

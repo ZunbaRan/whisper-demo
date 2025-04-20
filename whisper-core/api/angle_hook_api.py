@@ -3,10 +3,8 @@ from typing import Dict, Any, List
 import json
 import os
 from services.article_agent.angle_hook_strategist import AngleHookStrategist
-from services.llm.agent.output_manager import OutputManager
 
 router = APIRouter()
-output_manager = OutputManager()
 
 @router.post("/generate-angles")
 async def generate_angles(podcast_result: Dict[str, Any]) -> Dict[str, Any]:
