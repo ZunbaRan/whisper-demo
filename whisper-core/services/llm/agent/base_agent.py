@@ -1,9 +1,8 @@
-from typing import Dict, List, Any, Optional, AsyncGenerator
+from typing import Dict, List, Any, Optional, AsyncGenerator, Tuple
 import json
 import logging
 from abc import ABC, abstractmethod
 from services.llm.clients.LLM_client import llm_client
-from .output_manager import OutputManager
 
 logger = logging.getLogger(__name__)
 
@@ -15,15 +14,15 @@ class BaseAgent(ABC):
             model_name: 使用的模型名称
         """
         self.model_name = model_name
-        self.output_manager = OutputManager()
         self.context: Dict[str, Any] = {}  # 用于存储上下文信息
+        self.response_stream: List[Tuple[str, str]] = []  # 用于存储流式响应
 
     async def call(
         self, 
         content: str, 
         files: Optional[List[Dict[str, str]]] = None,
         **kwargs
-    ) -> AsyncGenerator[str, None]:
+    ) -> AsyncGenerator[Tuple[str, str], None]:
         """Agent的主要调用方法
 
         Args:
@@ -32,7 +31,7 @@ class BaseAgent(ABC):
             **kwargs: 其他参数
 
         Yields:
-            str: 处理过程中的流式输出
+            Tuple[str, str]: (role, content) 元组
         """
         try:
             # 初始化上下文
@@ -41,6 +40,7 @@ class BaseAgent(ABC):
                 "files": files or [],
                 **kwargs
             }
+            self.response_stream = []  # 清空响应流
 
             # 前置处理
             await self.pre_process()
@@ -48,12 +48,13 @@ class BaseAgent(ABC):
             # 构建消息
             messages = await self.build_messages()
 
-            # 调用LLM
-            response = await self.call_llm(messages)
-
-            # 处理响应
-            async for result in self.process_response(response):
-                yield result
+            # 调用LLM并处理响应
+            async for role, content in self.process_response(self.call_llm(messages)):
+                self.response_stream.append((role, content))  # 保存响应
+                if role == "error":
+                    yield "error", content
+                else:
+                    yield "assistant", content
 
             # 后置处理
             await self.post_process()
@@ -61,8 +62,7 @@ class BaseAgent(ABC):
         except Exception as e:
             error_msg = f"Agent处理失败: {str(e)}"
             logger.error(error_msg)
-            yield f"data: {json.dumps({'role': 'error', 'content': error_msg}, ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n"
+            yield ("error", error_msg)
 
     @abstractmethod
     async def pre_process(self) -> None:
@@ -90,34 +90,29 @@ class BaseAgent(ABC):
         """
         return template.format(**kwargs)
 
-    async def call_llm(self, messages: List[Dict[str, str]]) -> List[str]:
-        """调用LLM并收集响应
+    async def call_llm(self, messages: List[Dict[str, str]]) -> AsyncGenerator[Tuple[str, str], None]:
+        """调用LLM并流式返回响应
 
         Args:
             messages: 发送给LLM的消息列表
 
-        Returns:
-            List[str]: LLM的响应列表
+        Yields:
+            Tuple[str, str]: (role, content) 元组
         """
-        response = []
-        async for role, content in llm_client.chat_stream(self.model_name, messages):
-            if role == "error":
-                logger.error(f"LLM调用错误: {content}")
-                continue
-            if role == "done":
-                break
-            response.append(content)
-        return response
+        try:
+            async for role, content in llm_client.chat_stream(self.model_name, messages):
+                yield role, content
+        except Exception as e:
+            error_msg = f"LLM调用失败: {str(e)}"
+            logger.error(error_msg)
+            yield "error", error_msg
 
     @abstractmethod
-    async def process_response(self, response: List[str]) -> AsyncGenerator[str, None]:
+    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
         """处理LLM的响应
 
-        Args:
-            response: LLM的响应列表
-
         Yields:
-            str: 处理后的输出
+            Tuple[str, str]: (role, content) 元组
         """
         pass
 
@@ -126,36 +121,12 @@ class BaseAgent(ABC):
         """后置处理，在所有处理完成后的清理工作"""
         pass
 
-    async def save_step_output(self, step_name: str, data: Dict[str, Any]) -> None:
-        """保存步骤输出
-
-        Args:
-            step_name: 步骤名称
-            data: 要保存的数据
-        """
-        self.output_manager.save_step_output(step_name, data)
-
-    async def get_step_output(self, step_name: str) -> Dict[str, Any]:
-        """获取步骤输出
-
-        Args:
-            step_name: 步骤名称
-
-        Returns:
-            Dict[str, Any]: 步骤输出数据
-        """
-        return self.output_manager.get_step_output(step_name)
-
-    def get_tid(self) -> str:
-        """获取当前任务ID"""
-        return self.output_manager.get_tid()
-
     @abstractmethod
-    async def parse_response(self, response: List[str]) -> Dict[str, Any]:
+    async def parse_response(self, response: str) -> Dict[str, Any]:
         """解析LLM的响应
 
         Args:
-            response: LLM的响应列表
+            response: LLM的响应内容
 
         Returns:
             Dict[str, Any]: 解析后的结构化数据

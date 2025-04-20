@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict, List, Any, AsyncGenerator
+from typing import Dict, List, Any, AsyncGenerator, Tuple
 import logging
 from services.llm.agent.base_agent import BaseAgent
 
@@ -39,11 +39,11 @@ class SingleArticleAnalyzer(BaseAgent):
         )
         return [{'role': 'user', 'content': prompt}]
 
-    async def process_response(self, response: List[str]) -> AsyncGenerator[str, None]:
-        result = await self.parse_response(response)
+    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
+        async for role, content in response:
+            yield role, content
         filename = self.context.get("filename", "unknown")
-        await self.save_step_output(f"article_analysis_{filename}", result)
-        yield f"data: {json.dumps({'role': 'assistant', 'content': f'完成文章分析: {filename}'}, ensure_ascii=False)}\n\n"
+        yield 'assistant', f'完成文章分析: {filename}'
 
     async def post_process(self) -> None:
         pass
@@ -156,10 +156,10 @@ class StyleGuideGenerator(BaseAgent):
         )
         return [{'role': 'user', 'content': prompt}]
 
-    async def process_response(self, response: List[str]) -> AsyncGenerator[str, None]:
-        guide_content = "".join(response)
-        await self.save_step_output("style_guide", {"content": guide_content})
-        yield f"data: {json.dumps({'role': 'assistant', 'content': '生成写作风格指南完成'}, ensure_ascii=False)}\n\n"
+    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
+        async for role, content in response:
+            yield role, content
+        yield 'assistant', '生成写作风格指南完成'
 
     async def post_process(self) -> None:
         pass
@@ -196,46 +196,3 @@ class AuthorStyleAnalyzer:
                         "content": content
                     })
         return articles
-
-    async def analyze_author_style(self, articles_dir: str) -> AsyncGenerator[str, None]:
-        """分析作者风格的主方法"""
-        try:
-            # 检查并读取目录
-            dir_path = await self.check_dir_exists(articles_dir)
-            articles = await self.read_markdown_files(dir_path)
-
-            # 分析每篇文章
-            all_analyses = []
-            for article in articles:
-                yield f"data: {json.dumps({'role': 'assistant', 'content': f'开始分析文章: {article["filename"]}'}, ensure_ascii=False)}\n\n"
-                
-                # 调用单篇文章分析Agent
-                async for result in self.article_analyzer.call(
-                    content=article["content"],
-                    filename=article["filename"],
-                    author_name=self.author_name
-                ):
-                    yield result
-                
-                analysis = await self.article_analyzer.get_step_output(f"article_analysis_{article['filename']}")
-                all_analyses.append(analysis)
-
-            # 生成统一的风格指南
-            yield f"data: {json.dumps({'role': 'assistant', 'content': '开始生成风格指南'}, ensure_ascii=False)}\n\n"
-            async for result in self.guide_generator.call(
-                content=json.dumps(all_analyses, ensure_ascii=False, indent=2),
-                author_name=self.author_name
-            ):
-                yield result
-
-            yield "data: [DONE]\n\n"
-
-        except Exception as e:
-            error_msg = f"分析作者风格时发生错误: {str(e)}"
-            logger.error(error_msg)
-            yield f"data: {json.dumps({'role': 'error', 'content': error_msg}, ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n"
-
-    def get_tid(self) -> str:
-        """获取当前任务ID"""
-        return self.article_analyzer.get_tid() 

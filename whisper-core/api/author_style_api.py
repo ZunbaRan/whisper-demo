@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
+from services.llm.workflow.article_flow import ArticleFlow
+import os
 from typing import Dict, Any, List
 import json
-import os
-from services.article_agent.author_style_analyzer import AuthorStyleAnalyzer
 
 router = APIRouter()
 
@@ -19,78 +19,34 @@ async def analyze_author_style(author_name: str, articles_dir: str) -> Dict[str,
         Dict[str, Any]: 包含分析结果和状态信息的字典
     """
     try:
-        # 创建分析器实例
-        analyzer = AuthorStyleAnalyzer(author_name)
+        # 创建文章分析工作流
+        article_flow = ArticleFlow(author_name)
         
-        # 分析作者风格
+        # 收集所有输出
         results = []
-        async for result in analyzer.analyze_author_style(articles_dir):
-            if result.startswith("data: "):
-                if result[6:12] == '[DONE]':
-                    break
-                data = json.loads(result[6:])
-                if data.get("role") == "assistant":
-                    results.append(data.get("content", ""))
-
+        async for result in article_flow.analyze_author_style(articles_dir):
+            results.append(result)
         
+        # 获取输出文件列表
+        analysis_files = []
+        style_guides = []
+        output_dir = os.path.join("output", "author_style", author_name)
+        if os.path.exists(output_dir):
+            for filename in os.listdir(output_dir):
+                if filename.endswith('_analysis.json'):
+                    analysis_files.append(filename)
+                elif filename.endswith('_style_guide.md'):
+                    style_guides.append(filename)
+
         return {
             "status": "success",
             "message": "作者风格分析完成",
             "results": results,
             "output_files": {
-                "analysis_files": [f"{filename}_analysis.json" for filename in os.listdir(articles_dir) if filename.endswith('.md')],
-                "style_guides": results
+                "analysis_files": analysis_files,
+                "style_guides": style_guides
             }
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/get-analysis/{author_name}/{filename}")
-async def get_article_analysis(author_name: str, filename: str) -> Dict[str, Any]:
-    """
-    获取特定文章的分析结果
-    
-    Args:
-        author_name: 作者名称
-        filename: 文章文件名
-    
-    Returns:
-        Dict[str, Any]: 包含文章分析结果的字典
-    """
-    try:
-        analysis_file = os.path.join("output", "author_style", author_name, f"{filename}_analysis.json")
-        if not os.path.exists(analysis_file):
-            raise HTTPException(status_code=404, detail=f"文章 {filename} 的分析结果不存在")
-        
-        with open(analysis_file, "r", encoding="utf-8") as f:
-            return json.load(f)
-            
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/get-style-guide/{author_name}/{tag}")
-async def get_style_guide(author_name: str, tag: str) -> Dict[str, Any]:
-    """
-    获取特定tag的风格指南
-    
-    Args:
-        author_name: 作者名称
-        tag: 文章类型标签
-    
-    Returns:
-        Dict[str, Any]: 包含风格指南内容的字典
-    """
-    try:
-        guide_file = os.path.join("output", "author_style", author_name, f"{tag}_style_guide.md")
-        if not os.path.exists(guide_file):
-            raise HTTPException(status_code=404, detail=f"{tag} 类型的风格指南不存在")
-        
-        with open(guide_file, "r", encoding="utf-8") as f:
-            return {
-                "tag": tag,
-                "content": f.read()
-            }
-            
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 

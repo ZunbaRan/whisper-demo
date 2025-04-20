@@ -38,6 +38,7 @@ class LLM_client:
                 messages=messages,
                 model=config.model_id
             ):
+                print(content, end='', flush=True)
                 yield role, content
 
             # 发送完成标记
