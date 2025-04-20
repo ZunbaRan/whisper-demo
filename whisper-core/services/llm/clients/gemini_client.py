@@ -163,14 +163,27 @@ class GeminiClient(BaseClient):
                 内容类型: "reasoning" 或 "content"
                 内容: 实际的文本内容
         """
+        config = types.GenerateContentConfig(
+            temperature=0.7
+        )
+
         try:
-            # 构建提示
-            # prompt = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+            #  提取messages中的第一个key为system的值
+            system_prompt = [msg for msg in messages if msg['role'] == 'system']
+            if system_prompt:
+                 config.system_instruction = system_prompt[0]['content']
+
+            # 提取messages中的key为user的值
+            user_content = [msg for msg in messages if msg['role'] == 'user']
+            if user_content:
+                user_content = user_content[-1]['content']
+
             
             # 调用 Gemini API 进行流式响应
             response = self.client.models.generate_content_stream(
-                model='gemini-2.0-flash-001',
-                contents='hello'
+                model=model,
+                config = config,
+                contents=user_content
             )
 
             # 处理流式响应

@@ -54,6 +54,7 @@ from services.apple_rss_service import AppleRssService
 from services.db_service import DBService
 from services.llm.manager.llm_service_manager import llm_service_manager
 from services.llm.composite.composite import CompatibleComposite
+from services.llm.clients.LLM_client import llm_client
 
 # 引入 Deep Research 相关依赖
 import logging
@@ -786,12 +787,9 @@ async def deep_research(
 
 @app.post("/llm/test_gemini")
 async def test_gemini(
-    messages: List[Dict[str, str]] = Body(
+    message: str = Body(
         ...,
-        example=[{
-            "role": "user",
-            "content": "你好，请介绍一下你自己"
-        }]
+        description="请介绍一下你自己"
     ),
     model_name: str = Body(
         "Gemini/Gemini-2.0-Flash",
@@ -808,54 +806,24 @@ async def test_gemini(
         StreamingResponse: 流式响应
     """
     print(f"\n开始测试 Gemini 模型: {model_name}")
-    print(f"输入消息: {json.dumps(messages, ensure_ascii=False, indent=2)}")
+    print(f"输入消息: {message}")
     print("\n模型响应内容:")
 
     async def generate_response():
-        try:
-            # 获取客户端和配置
-            result = llm_service_manager.get_client(model_name)
-            if not result:
-                raise ValueError(f"无法获取模型 {model_name} 的客户端")
+        result = llm_client.chat_stream(model_name, [{"role": "user", "content": message}])
 
-            client, config = result
+        full_response = []  # 用于收集完整响应
+        async for role, content in result:
+            # 打印每个片段的内容（不换行）
+            print(content, end="", flush=True)
 
-            # 打印请求信息
-            print(f"请求地址: {config.api_base_url + config.api_request_address}")
-            print(f"模型ID: {config.model_id}")
-            if client.proxy:
-                print(f"使用代理: {client.proxy}")
+            full_response.append(content)
 
-            full_response = []  # 用于收集完整响应
-            async for role, content in client.stream_chat(
-                messages=messages,
-                model=config.model_id
-            ):
-                # 打印每个片段的内容（不换行）
-                print(content, end="", flush=True)
+            yield f"data: full_response: {json.dumps(content, ensure_ascii=False)}\n\n"
 
-                full_response.append(content)
-                response_data = {
-                    "role": role,
-                    "content": content
-                }
-                yield f"data: {json.dumps(response_data, ensure_ascii=False)}\n\n"
+        # 打印完整响应的分隔线
+        print("\n" + "-" * 50)
 
-            # 打印完整响应的分隔线
-            print("\n" + "-" * 50)
-
-            yield "data: [DONE]\n\n"
-
-        except Exception as e:
-            error_msg = f"测试 Gemini 调用失败: {str(e)}"
-            print(f"\n{error_msg}")
-            print("-" * 50 + "\n")
-
-            error_data = {
-                "error": error_msg
-            }
-            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n"
 
     return StreamingResponse(
         generate_response(),
@@ -865,3 +833,9 @@ async def test_gemini(
 
 if __name__ == "__main__":
     start_app()
+
+from api.angle_hook_api import router as angle_hook_router
+app.include_router(angle_hook_router, prefix="/angle-hook", tags=["angle-hook"])
+
+from api.author_style_api import router as author_style_router
+app.include_router(author_style_router, prefix="/author-style", tags=["author-style"])
