@@ -88,12 +88,9 @@ class StyleGuideGenerator(BaseAgent):
 输出格式: 一份详细、结构良好的 Markdown 文档，标题为"{author_name} 写作风格指南"。"""
 
     async def pre_process(self) -> None:
-        analyse_str = self.context["content"]
-        if analyse_str:
-            # 转化为 list Dict[str, Any]]
-            analyses = json.loads(analyse_str)
-        else:
-            analyses = []
+        analyses = self.context["content"]
+        if not analyses:
+           analyses = []
 
         self.context["stats"] = self.calculate_stats(analyses)
 
