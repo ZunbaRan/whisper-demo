@@ -57,17 +57,12 @@ class AngleHookStrategist(BaseAgent):
     async def process_response(self, response: List[str]) -> AsyncGenerator[str, None]:
         """处理响应"""
         result = await self.parse_response(response)
-        await self.save_step_output("angle_hook_strategies", result)
-        
+        # await self.post_process("angle_hook_strategi es", result)
+
         # 输出每个角度的信息
         for angle in result.get("angles", []):
-            yield f"data: {json.dumps({
-                'role': 'assistant',
-                'content': f"角度: {angle['angle']}\n"
-                          f"共鸣点: {angle['resonance']}\n"
-                          f"联系: {angle['connection']}\n"
-                          f"情感融入: {angle['emotional_integration']}"
-            }, ensure_ascii=False)}\n\n"
+            content = f'角度: {angle["angle"]}\n共鸣点: {angle["resonance"]}\n联系: {angle["connection"]}\n情感融入: {angle["emotional_integration"]}'
+            yield f'data: {json.dumps({"role": "assistant", "content": content}, ensure_ascii=False)}\n\n'
 
     async def post_process(self) -> None:
         """后处理：清理临时数据"""

@@ -15,9 +15,27 @@ class StyleGuideNode(Node):
         """准备上下文数据"""
         # 获取所有文章分析结果
         analyses =  self.inputs.get("analyses", '')
-                
+        # 提取字符串中所有 ```json 和 ``` 之间内容，并且转换为 list[Dict[str, Any]]
+        json_blocks = []
+        start_index = 0
+        while True:
+            start = analyses.find('```json', start_index)
+            if start == -1:
+                break
+            start += len('```json')
+            end = analyses.find('```', start)
+            if end == -1:
+                break
+            json_str = analyses[start:end].strip()
+            try:
+                json_data = json.loads(json_str)
+                json_blocks.append(json_data)
+            except json.JSONDecodeError:
+                print(f"无法解析 JSON 数据: {json_str}")
+            start_index = end + len('```')
+
         self.context = {
-            "content": analyses,
+            "content": json_blocks,
             "author_name": self.inputs.get("author_name", "unknown")
         }
         

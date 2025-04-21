@@ -104,7 +104,9 @@ class StyleGuideGenerator(BaseAgent):
             "avg_sentence_length": 0,
             "common_devices": [],
             "vocabulary_patterns": [],
-            "structure_habits": []
+            "structure_habits": [],
+            "paragraphing_and_fLow": [],
+            "opening_closing_patterns": []
         }
         
         # 计算平均句长
@@ -144,6 +146,21 @@ class StyleGuideGenerator(BaseAgent):
             if structure:
                 structure_counts[structure] = structure_counts.get(structure, 0) + 1
         stats["structure_habits"] = sorted(structure_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+
+        # 收集开头/结尾习惯
+        pattern_counts = {}
+        for analysis in analyses:
+            for pattern in analysis.get("opening_closing_patterns", []):
+                pattern_counts[pattern] = pattern_counts.get(pattern, 0) + 1
+        stats["opening_closing_patterns"] = sorted(pattern_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+
+        # 收集段落与流畅性
+        flow_counts = {}
+        for analysis in analyses:
+            flow = analysis.get("paragraphing_and_flow", "")
+            if flow:
+                flow_counts[flow] = flow_counts.get(flow, 0) + 1
+        stats["paragraphing_and_fLow"] = sorted(flow_counts.items(), key=lambda x: x[1], reverse=True)[:3]
         
         return stats
 
