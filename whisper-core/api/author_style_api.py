@@ -29,14 +29,8 @@ async def analyze_author_style(author_name: str, articles_dir: str) -> Dict[str,
         
         # 获取输出文件列表
         analysis_files = []
-        style_guides = []
-        output_dir = os.path.join("output", "author_style", author_name)
-        if os.path.exists(output_dir):
-            for filename in os.listdir(output_dir):
-                if filename.endswith('_analysis.json'):
-                    analysis_files.append(filename)
-                elif filename.endswith('_style_guide.md'):
-                    style_guides.append(filename)
+
+        style_guides = article_flow.context["style_guide"]
 
         return {
             "status": "success",

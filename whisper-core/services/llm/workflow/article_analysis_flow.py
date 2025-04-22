@@ -1,8 +1,7 @@
 import os
 import json
-from typing import Dict, Any, AsyncGenerator, List, Tuple
+from typing import AsyncGenerator, Tuple
 import logging
-from .node import Node
 from .workflow import Workflow
 from services.llm.workflow.nodes.article_analysis_node import ArticleAnalysisNode
 from services.llm.workflow.nodes.style_guide_node import StyleGuideNode
@@ -10,12 +9,13 @@ from services.llm.workflow.nodes.style_guide_node import StyleGuideNode
 logger = logging.getLogger(__name__)
 
 
-class ArticleFlow:
+class ArticleAnalysisFlow:
     """文章分析工作流"""
 
     def __init__(self, author_name: str):
         self.author_name = author_name
         self.workflow = Workflow("article_analysis_flow")
+        self.context = self.workflow.context
 
         # 创建节点
         self.analysis_node = ArticleAnalysisNode()

@@ -75,25 +75,3 @@ class AngleHookStrategist(BaseAgent):
         except json.JSONDecodeError as e:
             logger.error(f"解析JSON响应失败: {str(e)}")
             return {"angles": []}
-
-    async def generate_angles(self, podcast_result: Dict[str, Any]) -> AsyncGenerator[str, None]:
-        """生成文章角度的主方法"""
-        try:
-            # 设置context
-            self.context = {
-                "thesis": podcast_result.get("thesis", ""),
-                "actionable_advice": podcast_result.get("actionable_advice", []),
-                "examples": podcast_result.get("examples", [])
-            }
-            
-            # 调用LLM生成角度
-            async for result in self.call():
-                yield result
-                
-            yield "data: [DONE]\n\n"
-            
-        except Exception as e:
-            error_msg = f"生成文章角度时发生错误: {str(e)}"
-            logger.error(error_msg)
-            yield f"data: {json.dumps({'role': 'error', 'content': error_msg}, ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n" 

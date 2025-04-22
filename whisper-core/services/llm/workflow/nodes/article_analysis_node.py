@@ -2,8 +2,9 @@ from typing import Dict, Any, AsyncGenerator, List, Tuple
 import os
 import json
 import logging
+
+from services.article_agent.author_style_analyzer.single_article_analyzer_agent import SingleArticleAnalyzer
 from ..node import Node
-from services.article_agent.author_style_analyzer import SingleArticleAnalyzer
 
 logger = logging.getLogger(__name__)
 

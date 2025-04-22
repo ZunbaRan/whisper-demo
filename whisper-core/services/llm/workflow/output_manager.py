@@ -7,9 +7,9 @@ from datetime import datetime
 class OutputManager:
     """输出管理器"""
     
-    def __init__(self, output_dir: str = "output"):
+    def __init__(self, output_dir: str = "output", tid: str = None):
         self.output_dir = output_dir
-        self.tid = str(uuid.uuid4())
+        self.tid = tid
         self.outputs: Dict[str, Dict[str, Any]] = {}
         
     def save_step_output(self, step_name: str, data: Dict[str, Any]) -> None:
@@ -50,14 +50,6 @@ class OutputManager:
                 return json.load(f)
                 
         return {}
-        
-    def get_tid(self) -> str:
-        """获取当前任务ID
-        
-        Returns:
-            str: 任务ID
-        """
-        return self.tid
         
     def get_all_outputs(self) -> Dict[str, Dict[str, Any]]:
         """获取所有输出
