@@ -1,0 +1,123 @@
+import json
+from typing import AsyncGenerator, List, Dict, Any, Tuple
+
+from services.llm.agent.base_agent import BaseAgent, logger
+
+class DepthEnhancerAgent(BaseAgent):
+    """深度与细微差别增强师 Agent"""
+
+    PROMPT_TEMPLATE = """
+    **角色:** 你是一位具备深厚领域知识  {topic_domain} 的批判性思考者和高级编辑，同时对写作风格有深刻理解。你的任务是提升草稿的思想深度和表达的细微差别，而非简单改写。
+
+
+背景:
+- **文章草稿:** "{draft}"
+- **原始播客洞察:** {podcast_insights}
+- **目标作者风格指南:** {style_guide}
+
+    **背景信息:**
+    * **待审阅的文章草稿:**
+        ```
+        {draft}
+        ```
+    * **原始播客核心洞察 (供参考):**
+        * main_theme: {main_theme}
+        * Thesis: {thesis}
+        * sub_topics: {sub_topics}
+    * **目标作者风格指南:**
+        ```
+        {style_guide}
+        ```
+
+    **任务:**
+    请仔细审阅提供的文章草稿，并针对以下方面提出**具体、可操作的**增强建议，目的是在**严格保持** '[作者姓名]' 风格的前提下，增加内容的深度、说服力和细微差别：
+    1.  **分析深度挖掘 (Deeper Analysis):**
+        * 定位草稿中可以进行更深入分析的核心论点或观点。
+        * **建议：** 提出可以追问的“为什么”或“这意味着什么？”。例如：“在第 3 段，当提到[某观点]时，可以进一步探讨其背后的[潜在假设]吗？建议增加一句：‘这实际上挑战了我们通常认为的...’”。
+    2.  **拓展背景与联系 (Broader Context & Connections):**
+        * 寻找可以将草稿观点与更广泛背景（当前趋势、历史事件、相关理论、跨领域知识）联系起来的机会。
+        * **建议：** 提出具体的联系点。例如：“第 5 段讨论的[某策略]，可以简要联系到当前[某行业趋势]进行对比或印证，例如添加：‘这与我们在[另一领域]看到的[某现象]不谋而合。’”
+    3.  **强化论证（适度） (Stronger Evidence/Illustration):**
+        * 识别论证相对薄弱或可以进一步加强的地方。
+        * **建议：** 建议在何处可以（如果符合风格）谨慎地补充一个**简短**的、**普遍认知**的例子、数据点或类比来强化论点。例如：“为增强第 2 段的说服力，可在[某主张]后补充一句概括性的数据说明，如：‘研究普遍显示，类似方法能提升效率约[X]%’。” (注意：除非必要，不虚构具体数据)
+    4.  **引入细微差别/反思 (Nuance/Counter-arguments):**
+        * 思考是否存在可以（且符合作者风格地）承认的复杂性、替代观点或潜在局限性，以使论证更全面、更可信。
+        * **建议：** 提出具体的、符合风格的措辞来引入细微差别。例如：“在结尾段之前，可以考虑增加一句，承认‘当然，这种方法并非万能，在[特定情况]下可能需要调整...’，以体现作者思考的全面性。”
+
+    **约束:** 所有建议必须以增强深度和细微差别为目标，同时**绝对尊重并维持** '[作者姓名]' 的既定风格。避免提出会根本性改变风格的建议。
+
+输出格式: 请以markdown返回结果，包含以下字段： 
+    - 修改点1: 建议重写的段落
+    - 该段落的问题/机会: 说明为什么这里需要增强段落分析
+    - 具体建议: 提供**可直接采纳的修改建议**，可以是具体的措辞、需要补充的信息类型，或者需要进一步思考的问题。确保建议**符合风格指南**。
+    
+    - 修改点2: 建议重写的段落
+    ...
+    """
+
+    async def pre_process(self) -> None:
+        """前置处理"""
+        # 从上下文中获取必要的参数
+        self.draft = self.context.get("draft", "")
+        self.podcast_insights = self.context.get("podcast_insights", "")
+        self.style_guide = self.context.get("style_guide", "")
+        self.topic_domain = self.context.get("topic_domain", "商业策略")  # 默认值
+        self.main_theme = self.context.get("main_theme", "")
+        self.sub_topics = self.context.get("sub_topics", "")
+
+    async def build_messages(self) -> List[Dict[str, str]]:
+        """构建消息"""
+        prompt = await self.build_prompt(
+            self.PROMPT_TEMPLATE,
+            topic_domain=self.topic_domain,
+            draft=self.draft,
+            podcast_insights=self.podcast_insights,
+            style_guide=self.style_guide,
+            main_theme=self.main_theme,
+            sub_topics=self.sub_topics
+        )
+        return [{'role': 'user', 'content': prompt}]
+
+    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
+        """处理响应"""
+        try:
+            # 合并所有响应内容
+            full_response = ""
+            for role, content in response:
+                if role == "assistant":
+                    full_response += content
+                    yield (role, content)
+
+            # 解析响应
+            result = await self.parse_response(full_response)
+            self.context["enhancement_result"] = result
+            
+            # 返回完成消息
+            yield ("assistant", "深度分析完成")
+            yield ("done", "")
+            
+        except Exception as e:
+            logger.error(f"处理深度分析响应失败: {str(e)}")
+            yield ("error", str(e))
+
+    async def parse_response(self, response: str) -> Dict[str, Any]:
+        """解析响应"""
+        try:
+            # 提取JSON内容
+            if "```json" in response:
+                start = response.find("```json") + 7
+                end = response.find("```", start)
+                if end != -1:
+                    json_content = response[start:end].strip()
+                    return json.loads(json_content)
+            
+            # 如果没有找到JSON标记，尝试直接解析
+            return json.loads(response)
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"解析JSON响应失败: {str(e)}")
+            return []
+
+    async def post_process(self) -> None:
+        """后置处理"""
+        pass 

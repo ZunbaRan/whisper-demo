@@ -10,7 +10,7 @@ class StructuredDraftAgent(BaseAgent):
     PROMPT_TEMPLATE = """角色: 你是一位经验丰富的文章结构规划师，负责创建详细且连贯的文章大纲。
 背景: 
 - 播客主题: {theme}
-- 选定角度: {angle}
+- 选定角度: {selected_angle}
 - 播客结构大纲: {outline}
 
 任务: 基于以上信息，创建一个详细的文章大纲，要求：
@@ -33,13 +33,13 @@ class StructuredDraftAgent(BaseAgent):
     async def build_messages(self) -> List[Dict[str, str]]:
         # 从context中获取所需信息
         theme = self.context.get("theme", "")
-        angle = self.context.get("angle", "")
+        selected_angle = self.context.get("selected_angle", "")
         outline = self.context.get("outline", "")
         
         prompt = await self.build_prompt(
             self.PROMPT_TEMPLATE,
             theme=theme,
-            angle=angle,
+            angle=selected_angle,
             outline=outline
         )
         return [{'role': 'user', 'content': prompt}]
