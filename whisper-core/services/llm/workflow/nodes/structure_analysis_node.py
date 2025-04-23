@@ -19,11 +19,11 @@ class StructureAnalysisNode(Node):
 
     async def prepare_context(self) -> None:
         theme_result = self.inputs.get("theme_result")
-        elements_result = self.inputs.get("elements_result")
+        elements_info = self.inputs.get("elements_info")
 
         self.context = {
             "theme_result": theme_result,
-            "elements_result": elements_result
+            "elements_info": elements_info
         }
 
     async def process_output(self, results: List[Tuple[str, str]]) -> None:

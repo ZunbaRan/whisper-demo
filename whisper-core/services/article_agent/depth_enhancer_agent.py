@@ -55,6 +55,15 @@ class DepthEnhancerAgent(BaseAgent):
     ...
     """
 
+    def __init__(self, model_name: str = "Gemini/Gemini-2.0-Flash-thinking"):
+        super().__init__(model_name)
+        self.sub_topics = None
+        self.main_theme = None
+        self.style_guide = None
+        self.topic_domain = None
+        self.podcast_insights = None
+        self.draft = None
+
     async def pre_process(self) -> None:
         """前置处理"""
         # 从上下文中获取必要的参数

@@ -1,0 +1,42 @@
+import json
+from typing import List, Tuple, AsyncGenerator
+
+from services.article_agent.structured_draft.style_infusion_agent import ChapterAndStyleAgent
+from services.llm.workflow.node import Node
+
+
+class ChapterAndStyleNode(Node):
+    async def call(self) -> AsyncGenerator[Tuple[str, str], None]:
+        sections = self.inputs.get("sections", [])
+        previous_chapter = ""  # 初始化前一章节内容
+        for section in sections:
+            """角度钩选策略"""
+            async for result in self.agent.call(
+                    selected_angle = self.context["selected_angle"],
+                    chapter_purpose = section["chapter_purpose"],
+                    chapter_key_points = section["chapter_key_points"],
+                    content_elements = section["content_elements"],
+                    estimated_length=section["estimated_length"],
+                    style_guide = self.context["style_guide"]
+            ):
+                yield result
+                if result[0] == 'assistant':  # 假设助手返回的结果是章节内容
+                    previous_chapter += result[1]  # 收集当前章节内容作为下一章节的前一章节
+
+    async def prepare_context(self) -> None:
+
+        style_guide = self.inputs.get("style_guide")
+        angles = self.inputs.get("angles")
+        # 选取第一个角度作为示例
+        angle = angles[0]
+
+        self.context = {
+            "style_guide": style_guide,
+            "selected_angle": json.dumps(angle, ensure_ascii=False)
+        }
+
+    async def process_output(self, results: List[Tuple[str, str]]) -> None:
+        pass
+
+    def __init__(self, name: str = "chapter_and_style"):
+        super().__init__(name, ChapterAndStyleAgent())

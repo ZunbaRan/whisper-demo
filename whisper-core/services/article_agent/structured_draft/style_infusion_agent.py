@@ -4,16 +4,17 @@ from typing import AsyncGenerator, Dict, Any, List, Tuple
 from services.llm.agent.base_agent import BaseAgent, logger
 
 
-class StyleInfusionAgent(BaseAgent):
+class ChapterAndStyleAgent(BaseAgent):
     """风格注入Agent，负责按章节撰写文章并注入特定风格"""
 
     PROMPT_TEMPLATE = """
     **角色:** 你是一位技艺精湛的写手，能够完全沉浸在特定作者的风格中进行创作，目前正在撰写文章的特定一章。
 
     **背景:**
-    - **文章整体角度:**: {angle}
+    - **文章整体角度:**: {selected_angle}
     - **当前章节目标:**: {chapter_purpose}
-    - **本章需包含的关键内容:**: {chapter_content}
+    - **本章需包含的关键内容:**: {chapter_key_points}
+    - **本章需要包含的内容元素列表:** {content_elements}
     - **作者风格指南:**: 
         ```
         {style_guide}

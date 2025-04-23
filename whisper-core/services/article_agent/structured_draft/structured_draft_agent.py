@@ -9,9 +9,9 @@ class StructuredDraftAgent(BaseAgent):
 
     PROMPT_TEMPLATE = """角色: 你是一位经验丰富的文章结构规划师，负责创建详细且连贯的文章大纲。
 背景: 
-- 播客主题: {theme}
+- 播客主题: {theme_result}
 - 选定角度: {selected_angle}
-- 播客结构大纲: {outline}
+- 播客结构大纲: {structure_outline}
 
 任务: 基于以上信息，创建一个详细的文章大纲，要求：
 1. 保持原有结构的逻辑性
@@ -21,9 +21,9 @@ class StructuredDraftAgent(BaseAgent):
 
 输出格式: 请以JSON格式返回结果，包含以下字段：
 - sections: 章节列表，每个章节包含：
-  - title: 章节标题
-  - purpose: 章节目的
-  - key_points: 关键要点列表
+  - chapter_title: 章节标题
+  - chapter_purpose: 章节目的
+  - chapter_key_points: 关键要点列表
   - content_elements: 内容元素列表（包含引言、示例、数据等）
   - estimated_length: 预计字数"""
 

@@ -39,7 +39,7 @@ class ThemeAnalysisAgent(BaseAgent):
 
     async def parse_response(self, response: str) -> Dict[str, Any]:
         try:
-            return json.loads("".join(response))
+            return json.loads(response)
         except json.JSONDecodeError as e:
             logger.error(f"解析JSON响应失败: {str(e)}")
             return {"main_theme": "", "thesis": "", "sub_topics": []}
