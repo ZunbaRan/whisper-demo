@@ -1,5 +1,5 @@
 import json
-from typing import List, Tuple, AsyncGenerator
+from typing import List, Tuple, AsyncGenerator, Dict, Any
 
 from services.article_agent.structured_draft.style_infusion_agent import ChapterAndStyleAgent
 from services.llm.workflow.node import Node
@@ -9,17 +9,28 @@ class ChapterAndStyleNode(Node):
     async def call(self) -> AsyncGenerator[Tuple[str, str], None]:
         sections = self.inputs.get("sections", [])
         previous_chapter = ""  # 初始化前一章节内容
+
         for section in sections:
             """角度钩选策略"""
-            async for result in self.agent.call(
-                    selected_angle = self.context["selected_angle"],
-                    chapter_purpose = section["chapter_purpose"],
-                    chapter_key_points = section["chapter_key_points"],
-                    content_elements = section["content_elements"],
-                    estimated_length=section["estimated_length"],
-                    style_guide = self.context["style_guide"]
-            ):
+
+            content = Dict[str, Any]
+
+            content.selected_angle = self.context["selected_angle"],
+            content.chapter_purpose = section["chapter_purpose"],
+            content.chapter_key_points = section["chapter_key_points"],
+            content.content_elements = section["content_elements"],
+            content.estimated_length = section["estimated_length"],
+            content.style_guide = self.context["style_guide"],
+            if previous_chapter:
+                content.previous_chapter = previous_chapter
+
+            self.context =  json.dumps(content, ensure_ascii=False)
+
+
+
+            async for result in self.agent.call(**self.context):
                 yield result
+
                 if result[0] == 'assistant':  # 假设助手返回的结果是章节内容
                     previous_chapter += result[1]  # 收集当前章节内容作为下一章节的前一章节
 
