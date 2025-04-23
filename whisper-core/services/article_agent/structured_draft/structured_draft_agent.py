@@ -12,6 +12,7 @@ class StructuredDraftAgent(BaseAgent):
 - 播客主题: {theme_result}
 - 选定角度: {selected_angle}
 - 播客结构大纲: {structure_outline}
+- 播客内容元素: {elements_info}
 
 任务: 基于以上信息，创建一个详细的文章大纲，要求：
 1. 保持原有结构的逻辑性
@@ -32,15 +33,17 @@ class StructuredDraftAgent(BaseAgent):
 
     async def build_messages(self) -> List[Dict[str, str]]:
         # 从context中获取所需信息
-        theme = self.context.get("theme", "")
+        theme_result = self.context.get("theme_result", "")
         selected_angle = self.context.get("selected_angle", "")
-        outline = self.context.get("outline", "")
+        structure_outline = self.context.get("structure_outline", "")
+        elements_info = self.context.get("elements_info", "")
         
         prompt = await self.build_prompt(
             self.PROMPT_TEMPLATE,
-            theme=theme,
-            angle=selected_angle,
-            outline=outline
+            theme_result=theme_result,
+            selected_angle=selected_angle,
+            structure_outline=structure_outline,
+            elements_info=elements_info,
         )
         return [{'role': 'user', 'content': prompt}]
 

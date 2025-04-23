@@ -1,8 +1,9 @@
 from typing import Dict, Any, AsyncGenerator, Tuple, List
 
 from services.article_agent.author_style_analyzer.style_guide_generator_agent import StyleGuideGenerator
-from ..node import Node
 import json
+
+from services.llm.workflow.node import Node
 from services.llm.workflow.output_manager import OutputManager
 
 class StyleGuideNode(Node):

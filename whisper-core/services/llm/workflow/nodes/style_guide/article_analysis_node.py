@@ -4,7 +4,7 @@ import json
 import logging
 
 from services.article_agent.author_style_analyzer.single_article_analyzer_agent import SingleArticleAnalyzer
-from ..node import Node
+from services.llm.workflow.node import Node
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ class ArticleAnalysisNode(Node):
     
     def __init__(self, name: str = "article_analysis"):
         super().__init__(name, SingleArticleAnalyzer())
-        
+
     async def prepare_context(self) -> None:
         """准备上下文数据"""
         logger.info(f"准备文章分析节点上下文，输入: {json.dumps(self.inputs, ensure_ascii=False, indent=2)}")

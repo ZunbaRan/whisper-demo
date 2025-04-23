@@ -12,9 +12,9 @@ class EngagementInjectorAgent(BaseAgent):
     背景:
     - **文章草稿:** 
     ```
-    {draft_section}
+    {draft}
     ```
-    - **作者风格指南:** 
+    - **目标作者风格指南:** 
     ```
     {style_guide}
     ```
@@ -35,25 +35,29 @@ class EngagementInjectorAgent(BaseAgent):
 
     **约束:**
     **无缝融合:** 确保修改后的内容与原文风格、语气和逻辑完全一致，读起来天衣无缝，不显得突兀或生硬。
-    **！！！风格一致性是铁律！！！:** **绝对、严格地**维持 '[作者姓名]' 风格指南中定义的所有特征（语气、词汇、句法等）。互动元素必须像是作者本人会写出来的一样。
+    **！！！风格一致性是铁律！！！:** **绝对、严格地**维持目标作者风格指南中定义的所有特征（语气、词汇、句法等）。互动元素必须像是作者本人会写出来的一样。
     **道德底线:** **严禁**使用误导性信息、制造恐慌、人身攻击或任何不道德的操纵手段。互动元素应表现为有力的观点、深刻的洞察或引人思考的问题。
 
     输出格式: 修改后的文章内容
 
 """
 
+    def __init__(self, model_name: str = "Gemini/Gemini-2.0-Flash-thinking"):
+        super().__init__(model_name)
+        self.style_guide = None
+        self.draft = None
 
     async def pre_process(self) -> None:
         """前置处理"""
         # 从上下文中获取必要的参数
-        self.draft_section = self.context.get("draft_section", "")
+        self.draft = self.context.get("draft", "")
         self.style_guide = self.context.get("style_guide", "")
 
     async def build_messages(self) -> List[Dict[str, str]]:
         """构建消息"""
         prompt = await self.build_prompt(
             self.PROMPT_TEMPLATE,
-            draft_section=self.draft_section,
+            draft=self.draft,
             style_guide=self.style_guide
         )
         return [{'role': 'user', 'content': prompt}]
@@ -63,22 +67,22 @@ class EngagementInjectorAgent(BaseAgent):
         try:
             # 合并所有响应内容
             full_response = ""
-            for role, content in response:
+            async for role, content in response:
                 if role == "assistant":
                     full_response += content
-                    yield (role, content)
+                    yield role, content
 
             # 解析响应
             result = await self.parse_response(full_response)
             self.context["injection_result"] = result
             
             # 返回完成消息
-            yield ("assistant", "互动元素注入完成")
-            yield ("done", "")
+            yield "assistant", "互动元素注入完成"
+            yield "done", ""
             
         except Exception as e:
             logger.error(f"处理互动注入响应失败: {str(e)}")
-            yield ("error", str(e))
+            yield "error", str(e)
 
     async def parse_response(self, response: str) -> Dict[str, Any]:
         """解析响应"""

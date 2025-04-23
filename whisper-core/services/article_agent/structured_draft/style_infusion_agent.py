@@ -5,7 +5,7 @@ from services.llm.agent.base_agent import BaseAgent, logger
 
 
 class ChapterAndStyleAgent(BaseAgent):
-    """风格注入Agent，负责按章节撰写文章并注入特定风格"""
+    """章节创作，负责按章节撰写文章并注入特定风格"""
 
     PROMPT_TEMPLATE = """
     **角色:** 你是一位技艺精湛的写手，能够完全沉浸在特定作者的风格中进行创作，目前正在撰写文章的特定一章。

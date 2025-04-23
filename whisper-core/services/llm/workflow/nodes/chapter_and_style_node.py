@@ -13,20 +13,15 @@ class ChapterAndStyleNode(Node):
         for section in sections:
             """角度钩选策略"""
 
-            content = Dict[str, Any]
-
-            content.selected_angle = self.context["selected_angle"],
-            content.chapter_purpose = section["chapter_purpose"],
-            content.chapter_key_points = section["chapter_key_points"],
-            content.content_elements = section["content_elements"],
-            content.estimated_length = section["estimated_length"],
-            content.style_guide = self.context["style_guide"],
-            if previous_chapter:
-                content.previous_chapter = previous_chapter
-
-            self.context =  json.dumps(content, ensure_ascii=False)
-
-
+            self.context = {
+                "selected_angle": self.context["selected_angle"],
+                "style_guide": self.context["style_guide"],
+                "chapter_purpose": section["chapter_purpose"],
+                "chapter_key_points": section["chapter_key_points"],
+                "content_elements": section["content_elements"],
+                "estimated_length": section["estimated_length"],
+                "previous_chapter": previous_chapter
+            }
 
             async for result in self.agent.call(**self.context):
                 yield result

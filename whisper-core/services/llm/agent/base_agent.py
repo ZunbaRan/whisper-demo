@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional, AsyncGenerator, Tuple
+from typing import Dict, List, Any, Optional, AsyncGenerator, Tuple, Union
 import json
 import logging
 from abc import ABC, abstractmethod
@@ -122,7 +122,7 @@ class BaseAgent(ABC):
         pass
 
     @abstractmethod
-    async def parse_response(self, response: str) -> Dict[str, Any]:
+    async def parse_response(self, response: str) ->  Union[dict, list, str, int, float, bool, None]:
         """解析LLM的响应
 
         Args:

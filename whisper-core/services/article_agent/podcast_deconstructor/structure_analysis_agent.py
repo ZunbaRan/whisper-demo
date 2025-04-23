@@ -41,9 +41,9 @@ class StructureAnalysisAgent(BaseAgent):
     async def post_process(self) -> None:
         pass
 
-    async def parse_response(self, response: str) -> Dict[str, Any]:
+    async def parse_response(self, response: str) -> list[str]:
         try:
             return json.loads(response)
         except json.JSONDecodeError as e:
             logger.error(f"解析JSON响应失败: {str(e)}")
-            return {"structure_outline": []}
+            return []

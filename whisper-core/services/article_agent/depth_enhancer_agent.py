@@ -9,17 +9,12 @@ class DepthEnhancerAgent(BaseAgent):
     PROMPT_TEMPLATE = """
     **角色:** 你是一位具备深厚领域知识  {topic_domain} 的批判性思考者和高级编辑，同时对写作风格有深刻理解。你的任务是提升草稿的思想深度和表达的细微差别，而非简单改写。
 
-
-背景:
-- **文章草稿:** "{draft}"
-- **原始播客洞察:** {podcast_insights}
-- **目标作者风格指南:** {style_guide}
-
     **背景信息:**
     * **待审阅的文章草稿:**
         ```
         {draft}
         ```
+    * **文章整体角度:**: {selected_angle}
     * **原始播客核心洞察 (供参考):**
         * main_theme: {main_theme}
         * Thesis: {thesis}
@@ -44,7 +39,7 @@ class DepthEnhancerAgent(BaseAgent):
         * 思考是否存在可以（且符合作者风格地）承认的复杂性、替代观点或潜在局限性，以使论证更全面、更可信。
         * **建议：** 提出具体的、符合风格的措辞来引入细微差别。例如：“在结尾段之前，可以考虑增加一句，承认‘当然，这种方法并非万能，在[特定情况]下可能需要调整...’，以体现作者思考的全面性。”
 
-    **约束:** 所有建议必须以增强深度和细微差别为目标，同时**绝对尊重并维持** '[作者姓名]' 的既定风格。避免提出会根本性改变风格的建议。
+    **约束:** 所有建议必须以增强深度和细微差别为目标，同时**绝对尊重并维持** 目标作者的既定风格。避免提出会根本性改变风格的建议。
 
 输出格式: 请以markdown返回结果，包含以下字段： 
     - 修改点1: 建议重写的段落
@@ -57,22 +52,24 @@ class DepthEnhancerAgent(BaseAgent):
 
     def __init__(self, model_name: str = "Gemini/Gemini-2.0-Flash-thinking"):
         super().__init__(model_name)
+        self.thesis = None
+        self.selected_angle = None
         self.sub_topics = None
         self.main_theme = None
         self.style_guide = None
         self.topic_domain = None
-        self.podcast_insights = None
         self.draft = None
 
     async def pre_process(self) -> None:
         """前置处理"""
         # 从上下文中获取必要的参数
         self.draft = self.context.get("draft", "")
-        self.podcast_insights = self.context.get("podcast_insights", "")
         self.style_guide = self.context.get("style_guide", "")
         self.topic_domain = self.context.get("topic_domain", "商业策略")  # 默认值
         self.main_theme = self.context.get("main_theme", "")
         self.sub_topics = self.context.get("sub_topics", "")
+        self.selected_angle = self.context.get("selected_angle")
+        self.thesis = self.context.get("thesis", "")
 
     async def build_messages(self) -> List[Dict[str, str]]:
         """构建消息"""
@@ -80,52 +77,23 @@ class DepthEnhancerAgent(BaseAgent):
             self.PROMPT_TEMPLATE,
             topic_domain=self.topic_domain,
             draft=self.draft,
-            podcast_insights=self.podcast_insights,
             style_guide=self.style_guide,
             main_theme=self.main_theme,
-            sub_topics=self.sub_topics
+            sub_topics=self.sub_topics,
+            selected_angle=self.selected_angle,
+            thesis=self.thesis
         )
         return [{'role': 'user', 'content': prompt}]
 
     async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
         """处理响应"""
-        try:
-            # 合并所有响应内容
-            full_response = ""
-            for role, content in response:
-                if role == "assistant":
-                    full_response += content
-                    yield (role, content)
+        async for role, content in response:
+            yield role, content
+        yield 'assistant', '深度分析完成'
 
-            # 解析响应
-            result = await self.parse_response(full_response)
-            self.context["enhancement_result"] = result
-            
-            # 返回完成消息
-            yield ("assistant", "深度分析完成")
-            yield ("done", "")
-            
-        except Exception as e:
-            logger.error(f"处理深度分析响应失败: {str(e)}")
-            yield ("error", str(e))
 
     async def parse_response(self, response: str) -> Dict[str, Any]:
-        """解析响应"""
-        try:
-            # 提取JSON内容
-            if "```json" in response:
-                start = response.find("```json") + 7
-                end = response.find("```", start)
-                if end != -1:
-                    json_content = response[start:end].strip()
-                    return json.loads(json_content)
-            
-            # 如果没有找到JSON标记，尝试直接解析
-            return json.loads(response)
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"解析JSON响应失败: {str(e)}")
-            return []
+        pass
 
     async def post_process(self) -> None:
         """后置处理"""
