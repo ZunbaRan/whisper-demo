@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict, Any, AsyncGenerator, List, Tuple
+from typing import Dict, Any, AsyncGenerator, List, Tuple, Optional
 import logging
 
 from .nodes.angle_hook_strategist_node import AngleHookStrategistNode
@@ -11,18 +11,27 @@ from .nodes.engagement_injector_node import EngagementInjectorNode
 from .nodes.structure_analysis_node import StructureAnalysisNode
 from .nodes.structured_draft_node import StructuredDraftNode
 from .nodes.theme_analysis_node import ThemeAnalysisNode
+from .output_manager import OutputManager
 from .workflow import Workflow
 
 logger = logging.getLogger(__name__)
 
 
-class ArticleAnalysisFlow:
+class ArticleCreateFlow:
     """文章分析工作流"""
 
-    def __init__(self, author_name: str):
+    def __init__(self, author_name: str, tid: Optional[str] = None):
+        """初始化文章创建工作流
+        
+        Args:
+            author_name: 作者名称
+            tid: 任务ID，如果为None则自动生成
+        """
         self.author_name = author_name
-        self.workflow = Workflow("article_create_flow")
+        self.workflow = Workflow("article_create_flow", tid=tid)
         self.context = self.workflow.context
+
+        print(f"tid: {self.workflow.get_tid()}")
 
         # 主题分析节点
         self.theme_analysis_node = ThemeAnalysisNode()
@@ -45,8 +54,8 @@ class ArticleAnalysisFlow:
         self.workflow.add_node(self.theme_analysis_node)
         self.workflow.add_node(self.elements_extraction_node)
         self.workflow.add_node(self.structure_analysis_node)
-        self.workflow.add_node(self.structured_draft_node)
         self.workflow.add_node(self.angle_hook_strategist_node)
+        self.workflow.add_node(self.structured_draft_node)
         self.workflow.add_node(self.structured_draft_node)
         self.workflow.add_node(self.chapter_and_style_node)
         self.workflow.add_node(self.depth_enhancer_node)
@@ -56,22 +65,46 @@ class ArticleAnalysisFlow:
         self.workflow.set_node_order([self.theme_analysis_node.name,
                                       self.elements_extraction_node.name,
                                       self.structure_analysis_node.name,
-                                      self.structured_draft_node.name,
                                       self.angle_hook_strategist_node.name,
+                                      self.structured_draft_node.name,
                                       self.structured_draft_node.name,
                                       self.chapter_and_style_node.name,
                                       self.depth_enhancer_node.name,
                                       self.engagement_injector_node.name,
                                       ])
 
-    async def analyze_author_style(self, content: str) -> AsyncGenerator[Tuple[str, str], None]:
-        """分析作者风格的主方法"""
+    async def create_article(self, content: str) -> AsyncGenerator[Tuple[str, str], None]:
+        """创建文章
+        
+        Args:
+            content: 播客内容
+            
+        Yields:
+            str: 处理过程中的流式输出
+        """
+        file_path = os.path.join("services/article_agent/style/bi_sytle2.md")
+        if os.path.exists(file_path):
+            with open(file_path, "r", encoding="utf-8") as f:
+                style_guide = f.read()
 
         # 准备初始输入
         initial_inputs = {
-            "content": content
+            "content": content,
+            "style_guide": style_guide
         }
 
         # 执行工作流
         async for result in self.workflow.execute(initial_inputs):
+            yield result
+
+    async def resume_from_node(self, node_name: str) -> AsyncGenerator[Tuple[str, str], None]:
+        """从指定节点继续执行工作流
+        
+        Args:
+            node_name: 要从中继续执行的节点名称
+            
+        Yields:
+            str: 处理过程中的流式输出
+        """
+        async for result in self.workflow.resume_from_node(node_name):
             yield result

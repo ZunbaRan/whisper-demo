@@ -25,7 +25,7 @@ class StructureAnalysisAgent(BaseAgent):
 
     async def build_messages(self) -> List[Dict[str, str]]:
         theme_result = self.context["theme_result"]
-        elements_result = self.context["elements_result"]
+        elements_result = self.context["elements_info"]
         prompt = await self.build_prompt(
             self.PROMPT_TEMPLATE,
             theme_info=json.dumps(theme_result, ensure_ascii=False),
@@ -43,7 +43,14 @@ class StructureAnalysisAgent(BaseAgent):
 
     async def parse_response(self, response: str) -> list[str]:
         try:
-            return json.loads(response)
+            if "```json" in response:
+                start = response.find("```json") + 7
+                end = response.find("```", start)
+                if end != -1:
+                    json_content = response[start:end].strip()
+                    return json.loads(json_content)
+            else:
+                return json.loads(response)
         except json.JSONDecodeError as e:
             logger.error(f"解析JSON响应失败: {str(e)}")
             return []

@@ -2,9 +2,11 @@ import os
 import json
 from typing import AsyncGenerator, Tuple
 import logging
+
+from .nodes.style_guide.article_analysis_node import ArticleAnalysisNode
+from .nodes.style_guide.style_guide_node import StyleGuideNode
 from .workflow import Workflow
-from services.llm.workflow.nodes.article_analysis_node import ArticleAnalysisNode
-from services.llm.workflow.nodes.style_guide_node import StyleGuideNode
+
 
 logger = logging.getLogger(__name__)
 

@@ -44,6 +44,7 @@ class ChapterAndStyleAgent(BaseAgent):
         chapter_purpose = self.context.get("chapter_purpose", "")
         chapter_content = self.context.get("chapter_content", "")
         style_guide = self.context.get("style_guide", "")
+        selected_angle = self.context.get("selected_angle", "")
         previous_chapter = self.context.get("previous_chapter", "")
         estimated_length = self.context.get("estimated_length", 500)
         
@@ -54,7 +55,8 @@ class ChapterAndStyleAgent(BaseAgent):
             chapter_content=chapter_content,
             style_guide=style_guide,
             previous_chapter=previous_chapter,
-            estimated_length=estimated_length
+            estimated_length=estimated_length,
+            selected_angle=selected_angle
         )
         return [{'role': 'user', 'content': prompt}]
 

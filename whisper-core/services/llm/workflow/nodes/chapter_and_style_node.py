@@ -7,10 +7,10 @@ from services.llm.workflow.node import Node
 
 class ChapterAndStyleNode(Node):
     async def call(self) -> AsyncGenerator[Tuple[str, str], None]:
-        sections = self.inputs.get("sections", [])
+        sections = self.inputs.get("sections")
         previous_chapter = ""  # 初始化前一章节内容
 
-        for section in sections:
+        for section in sections["sections"]:
             """角度钩选策略"""
 
             self.context = {
@@ -42,7 +42,14 @@ class ChapterAndStyleNode(Node):
         }
 
     async def process_output(self, results: List[Tuple[str, str]]) -> None:
-        pass
+        content_list = [result[1] for result in results]
+        content_str = "".join(content_list)  # 使用空字符串拼接
+        print(f"章节创作结果: {content_str}")
+
+        """处理输出数据"""
+        self.outputs = {
+            "draft": content_str
+        }
 
     def __init__(self, name: str = "chapter_and_style"):
         super().__init__(name, ChapterAndStyleAgent())

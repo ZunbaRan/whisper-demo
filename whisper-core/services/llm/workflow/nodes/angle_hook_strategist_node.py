@@ -33,10 +33,7 @@ class AngleHookStrategistNode(Node):
         content_str = "".join(content_list)  # 使用空字符串拼接
         print(f"角度钩选策略结果: {content_str}")
 
-        try:
-            angles = json.loads(content_str)
-        except json.JSONDecodeError:
-            angles = []
+        angles = await self.agent.parse_response(content_str)
         self.outputs = {
             "angles": angles
         }

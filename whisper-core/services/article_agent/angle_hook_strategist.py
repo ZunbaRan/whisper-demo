@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, AsyncGenerator, Tuple
+from typing import Dict, List, Any, AsyncGenerator, Tuple, Coroutine
 import json
 import logging
 from services.llm.agent.base_agent import BaseAgent
@@ -9,12 +9,8 @@ logger = logging.getLogger(__name__)
 class AngleHookStrategist(BaseAgent):
     """角度与引子策略师"""
 
-    PROMPT_TEMPLATE = """角色: 你是一位创意内容策略师和专家级文案撰稿人，擅长制造病毒式内容的引子。
-背景: 一个播客的核心信息是 '{thesis}'。关键要点包括 {actionable_advice}。
-目标受众是: {target_audience}。
-我们希望文章能融入 {emotional_elements} 的元素。
-
-**角色:** 你是一位顶尖的内容策略师和病毒式营销文案专家，极其擅长根据目标受众和核心信息，构思能够引发高度关注和讨论的文章切入点 (Angle) 和开头诱饵 (Hook)。
+    PROMPT_TEMPLATE = """
+    **角色:** 你是一位顶尖的内容策略师和病毒式营销文案专家，极其擅长根据目标受众和核心信息，构思能够引发高度关注和讨论的文章切入点 (Angle) 和开头诱饵 (Hook)。
 
 **背景信息:**
 * **播客核心信息:**
@@ -22,7 +18,7 @@ class AngleHookStrategist(BaseAgent):
     - 中心主题 {main_theme} 
     - 主要论点 {thesis}
     ```
-* **关键洞察/建议:** {golden_quotes}
+* **关键洞察/建议:** {key_points}
 * **亮点素材:** {examples}
 * **目标受众画像:** '{target_audience}']'
 
@@ -30,7 +26,9 @@ class AngleHookStrategist(BaseAgent):
 1. 清晰陈述该角度/引子。
 2. 解释*为什么*它会与目标受众产生共鸣。
 3. 建议它如何与播客的核心信息联系起来。
-4. 简要说明期望的互动元素（'焦虑'/'争议'）可以如何融入这个角度。
+4. 我们希望文章能融入 {emotional_elements} 的元素。
+5. 简要说明期望的融入的元素可以如何融入这个角度。
+
 
 
 **任务:**
@@ -48,7 +46,7 @@ class AngleHookStrategist(BaseAgent):
 
     def __init__(self,
                  target_audience: str = "寻求获取财富提升,以及阶级跨越的年轻人士，对职业发展感到焦虑，渴望提升效率，但又对市面上的通用建议感到疲倦",
-                 emotional_elements: str = "具有争议,冲突,对立,焦虑等元素，此等元素容易引发讨论, 触发读者感情共鸣"):
+                 emotional_elements: str = "容易引发讨论, 触发读者感情共鸣的元素"):
         super().__init__()
         self.target_audience = target_audience
         self.emotional_elements = emotional_elements
@@ -66,15 +64,16 @@ class AngleHookStrategist(BaseAgent):
         # 从context中获取必要信息
         thesis = self.context["thesis"]
         main_theme = self.context["main_theme"]
-        key_points = self.context["golden_quotes"][:3]  # 取前三个关键点
-        examples = self.context["examples"][:3]  # 取前三个例子
+        key_points = self.context["golden_quotes"]  # 取前三个关键点
+        examples = self.context["examples"]  # 取前三个例子
+
 
         prompt = await self.build_prompt(
             self.PROMPT_TEMPLATE,
             thesis=thesis,
             main_theme=main_theme,
-            examples=json.dumps(examples, ensure_ascii=False),
-            key_points=json.dumps(key_points, ensure_ascii=False),
+            examples= json.dumps(examples, ensure_ascii=False, indent=4),
+            key_points= "\n".join(key_points),
             target_audience=self.target_audience,
             emotional_elements=self.emotional_elements
         )
@@ -91,10 +90,17 @@ class AngleHookStrategist(BaseAgent):
         """后处理：清理临时数据"""
         pass
 
-    async def parse_response(self, response: str) -> Dict[str, Any]:
+    async def parse_response(self, response: str) -> list:
         """解析响应"""
         try:
-            return json.loads("".join(response))
+            if "```json" in response:
+                start = response.find("```json") + 7
+                end = response.find("```", start)
+                if end!= -1:
+                    json_content = response[start:end].strip()
+                    return json.loads(json_content)
+            else:
+                return json.loads("".join(response))
         except json.JSONDecodeError as e:
             logger.error(f"解析JSON响应失败: {str(e)}")
-            return {"angles": []}
+            return []

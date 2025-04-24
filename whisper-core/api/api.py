@@ -839,3 +839,6 @@ app.include_router(angle_hook_router, prefix="/angle-hook", tags=["angle-hook"])
 
 from api.author_style_api import router as author_style_router
 app.include_router(author_style_router, prefix="/author-style", tags=["author-style"])
+
+from api.article_style_create_api import router as article_style_create_router
+app.include_router(article_style_create_router, prefix="/article-style-create", tags=["article-style-create"])

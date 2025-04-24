@@ -45,13 +45,4 @@ class ElementsExtractionAgent(BaseAgent):
         pass
 
     async def parse_response(self, response: str) -> Dict[str, Any]:
-        try:
-            return json.loads(response)
-        except json.JSONDecodeError as e:
-            logger.error(f"解析JSON响应失败: {str(e)}")
-            return {
-                "golden_quotes": [],
-                "actionable_advice": [],
-                "examples": [],
-                "data_points": []
-            }
+        pass

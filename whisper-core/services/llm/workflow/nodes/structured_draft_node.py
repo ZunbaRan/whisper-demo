@@ -20,8 +20,8 @@ class StructuredDraftNode(Node):
         theme_result = self.inputs.get("theme_result")
         main_theme = theme_result.get("main_theme")
         thesis = theme_result.get("thesis")
-        sub_topics = theme_result.get("sub_topics")
-        sub_topics_str = "\n".join({sub_topics})
+        sub_topics:[] = theme_result.get("sub_topics")
+        sub_topics_str = "\n".join(sub_topics)
 
         theme = f"""中心主题: {main_theme}\n 主要论点: {thesis} \n 子主题: {sub_topics_str} """
 
@@ -67,10 +67,18 @@ class StructuredDraftNode(Node):
             "elements_info": elements
         }
 
-        pass
 
     async def process_output(self, results: List[Tuple[str, str]]) -> None:
-        pass
+        # 提取元组集合中所有的 content 部分, 并直接拼接为一个str
+        content_list = [result[1] for result in results]
+        content_str = "".join(content_list)  # 使用空字符串拼接
+        print(f"结构化草稿结果: {content_str}")
+
+        sections = await self.agent.parse_response(content_str)
+        """处理输出数据"""
+        self.outputs = {
+            "sections": sections
+        }
 
     def __init__(self, name: str = "structured_draft"):
         super().__init__(name, StructuredDraftAgent())

@@ -6,6 +6,7 @@ from services.llm.clients.LLM_client import llm_client
 
 logger = logging.getLogger(__name__)
 
+
 class BaseAgent(ABC):
     def __init__(self, model_name: str = "Gemini/Gemini-2.0-Flash-thinking"):
         """初始化Agent
@@ -18,10 +19,10 @@ class BaseAgent(ABC):
         self.response_stream: List[Tuple[str, str]] = []  # 用于存储流式响应
 
     async def call(
-        self, 
-        content: str, 
-        files: Optional[List[Dict[str, str]]] = None,
-        **kwargs
+            self,
+            content: Optional[str] = None,
+            files: Optional[List[Dict[str, str]]] = None,
+            **kwargs
     ) -> AsyncGenerator[Tuple[str, str], None]:
         """Agent的主要调用方法
 
@@ -33,36 +34,36 @@ class BaseAgent(ABC):
         Yields:
             Tuple[str, str]: (role, content) 元组
         """
-        try:
-            # 初始化上下文
-            self.context = {
-                "content": content,
-                "files": files or [],
-                **kwargs
-            }
-            self.response_stream = []  # 清空响应流
+        # try:
+        # 初始化上下文
+        self.context = {
+            "content": content or '',
+            "files": files or [],
+            **kwargs
+        }
+        self.response_stream = []  # 清空响应流
 
-            # 前置处理
-            await self.pre_process()
+        # 前置处理
+        await self.pre_process()
 
-            # 构建消息
-            messages = await self.build_messages()
+        # 构建消息
+        messages = await self.build_messages()
 
-            # 调用LLM并处理响应
-            async for role, content in self.process_response(self.call_llm(messages)):
-                self.response_stream.append((role, content))  # 保存响应
-                if role == "error":
-                    yield "error", content
-                else:
-                    yield "assistant", content
+        # 调用LLM并处理响应
+        async for role, content in self.process_response(self.call_llm(messages)):
+            self.response_stream.append((role, content))  # 保存响应
+            if role == "error":
+                yield "error", content
+            else:
+                yield "assistant", content
 
-            # 后置处理
-            await self.post_process()
+        # 后置处理
+        await self.post_process()
 
-        except Exception as e:
-            error_msg = f"Agent处理失败: {e.__traceback__}"
-            logger.error(e.__traceback__)
-            yield "error", error_msg
+    # except Exception as e:
+    #     error_msg = f"Agent处理失败: {e.__traceback__}"
+    #     logger.error(e.__traceback__)
+    #     yield "error", error_msg
 
     @abstractmethod
     async def pre_process(self) -> None:
@@ -99,13 +100,16 @@ class BaseAgent(ABC):
         Yields:
             Tuple[str, str]: (role, content) 元组
         """
-        try:
-            async for role, content in llm_client.chat_stream(self.model_name, messages):
-                yield role, content
-        except Exception as e:
-            error_msg = f"LLM调用失败: {str(e)}"
-            logger.error(error_msg)
-            yield "error", error_msg
+        async for role, content in llm_client.chat_stream(self.model_name, messages):
+            yield role, content
+
+        # try:
+        #     async for role, content in llm_client.chat_stream(self.model_name, messages):
+        #         yield role, content
+        # except Exception as e:
+        #     error_msg = f"LLM调用失败: {str(e)}"
+        #     logger.error(error_msg)
+        #     yield "error", error_msg
 
     @abstractmethod
     async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
@@ -131,4 +135,4 @@ class BaseAgent(ABC):
         Returns:
             Dict[str, Any]: 解析后的结构化数据
         """
-        pass 
+        pass

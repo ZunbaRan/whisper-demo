@@ -11,8 +11,8 @@ models/
 downloads/
 
 # Poetry cache and local configuration
-.poetry/
-poetry.lock
+#.poetry/
+#poetry.lock
 
 # IDE settings
 .vscode/

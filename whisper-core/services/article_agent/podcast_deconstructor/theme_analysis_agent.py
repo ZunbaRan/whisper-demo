@@ -39,6 +39,14 @@ class ThemeAnalysisAgent(BaseAgent):
 
     async def parse_response(self, response: str) -> Dict[str, Any]:
         try:
+            # 提取JSON内容
+            if "```json" in response:
+                start = response.find("```json") + 7
+                end = response.find("```", start)
+                if end != -1:
+                    json_content = response[start:end].strip()
+                    return json.loads(json_content)
+
             return json.loads(response)
         except json.JSONDecodeError as e:
             logger.error(f"解析JSON响应失败: {str(e)}")

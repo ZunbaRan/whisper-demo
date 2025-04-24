@@ -17,7 +17,10 @@ class ThemeAnalysisNode(Node):
             yield result
 
     async def prepare_context(self) -> None:
-        pass
+        self.inputs.get("content")
+        self.context = {
+            "content": self.inputs.get("content")
+        }
 
     async def process_output(self, results: List[Tuple[str, str]]) -> None:
         # - main_theme: 中心主题（字符串）
@@ -28,6 +31,7 @@ class ThemeAnalysisNode(Node):
         content_list = [result[1] for result in results]
         content_str = "".join(content_list)  # 使用空字符串拼接
         print(f"风格指南生成结果: {content_str}")
+
 
         # {"main_theme": "", "thesis": "", "sub_topics": []}
         con_theme = await self.agent.parse_response(content_str)

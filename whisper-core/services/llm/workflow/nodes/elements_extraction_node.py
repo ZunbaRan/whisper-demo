@@ -1,3 +1,4 @@
+import json
 from typing import List, Tuple, Any, AsyncGenerator
 
 from services.article_agent.podcast_deconstructor.elements_extraction_agent import ElementsExtractionAgent
@@ -35,7 +36,16 @@ class ElementsExtractionNode(Node):
         #     "examples": [],
         #     "data_points": []
         # }
-        elements_info = await self.agent.parse_response(content_str)
+        elements_info = []
+        # 提取JSON内容
+        if "```json" in content_str:
+            start = content_str.find("```json") + 7
+            end = content_str.find("```", start)
+            if end != -1:
+                json_content = content_str[start:end].strip()
+                elements_info = json.loads(json_content)
+        else:
+            elements_info = json.loads(content_str)
 
         """处理输出数据"""
         self.outputs = {

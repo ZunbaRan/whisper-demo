@@ -37,7 +37,7 @@ class StructuredDraftAgent(BaseAgent):
         selected_angle = self.context.get("selected_angle", "")
         structure_outline = self.context.get("structure_outline", "")
         elements_info = self.context.get("elements_info", "")
-        
+
         prompt = await self.build_prompt(
             self.PROMPT_TEMPLATE,
             theme_result=theme_result,
@@ -47,7 +47,8 @@ class StructuredDraftAgent(BaseAgent):
         )
         return [{'role': 'user', 'content': prompt}]
 
-    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
+    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[
+        Tuple[str, str], None]:
         async for role, content in response:
             yield role, content
         yield 'assistant', '详细大纲生成完成'
@@ -55,9 +56,18 @@ class StructuredDraftAgent(BaseAgent):
     async def post_process(self) -> None:
         pass
 
-    async def parse_response(self, response: str) -> Dict[str, Any]:
+    async def parse_response(self, response: str) -> list[dict[str, Any]]:
         try:
-            return json.loads(response)
+            # 提取JSON内容
+            if "```json" in response:
+                start = response.find("```json") + 7
+                end = response.find("```", start)
+                if end != -1:
+                    json_content = response[start:end].strip()
+                    return json.loads(json_content)
+            else:
+                return json.loads(response)
+
         except json.JSONDecodeError as e:
             logger.error(f"解析JSON响应失败: {str(e)}")
-            return {"sections": []} 
+            return []

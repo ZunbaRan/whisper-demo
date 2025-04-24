@@ -26,26 +26,41 @@ class Node(ABC):
         Yields:
             Tuple[str, str]: (role, content) 元组
         """
-        try:
-            # 设置输入
-            self.inputs = inputs
-            
-            # 准备上下文
-            await self.prepare_context()
-            
-            # 执行节点逻辑
-            async for role, content in self.call():
-                self.call_results.append((role, content))
-                yield role, content
-                            
-            # 处理输出
-            await self.process_output(self.call_results)
-            
-        except Exception as e:
-            error_msg = f"节点 {self.name} 执行失败: {str(e)}"
-            logger.error(error_msg)
-            yield "error", error_msg
-            yield "done", ""
+
+        # 设置输入
+        self.inputs = inputs
+
+        # 准备上下文
+        await self.prepare_context()
+
+        # 执行节点逻辑
+        async for role, content in self.call():
+            self.call_results.append((role, content))
+            yield role, content
+
+        # 处理输出
+        await self.process_output(self.call_results)
+
+        # try:
+        #     # 设置输入
+        #     self.inputs = inputs
+        #
+        #     # 准备上下文
+        #     await self.prepare_context()
+        #
+        #     # 执行节点逻辑
+        #     async for role, content in self.call():
+        #         self.call_results.append((role, content))
+        #         yield role, content
+        #
+        #     # 处理输出
+        #     await self.process_output(self.call_results)
+        #
+        # except Exception as e:
+        #     error_msg = f"节点 {self.name} 执行失败: {str(e)}"
+        #     logger.error(error_msg)
+        #     yield "error", error_msg
+        #     yield "done", ""
             
             
     @abstractmethod

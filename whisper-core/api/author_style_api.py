@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException
-from services.llm.workflow.article_flow import ArticleFlow
 import os
 from typing import Dict, Any, List
 import json
+
+from services.llm.workflow.article_analysis_flow import ArticleAnalysisFlow
 
 router = APIRouter()
 
@@ -20,7 +21,7 @@ async def analyze_author_style(author_name: str, articles_dir: str) -> Dict[str,
     """
     try:
         # 创建文章分析工作流
-        article_flow = ArticleFlow(author_name)
+        article_flow = ArticleAnalysisFlow(author_name)
         
         # 收集所有输出
         results = []
