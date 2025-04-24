@@ -24,7 +24,7 @@ class EngagementInjectorNode(Node):
         # 提取元组集合中所有的 content 部分, 并直接拼接为一个str
         content_list = [result[1] for result in results]
         content_str = "".join(content_list)  # 使用空字符串拼接
-        print(f"结构分析结果: {content_str}")
+        print(f"互动元素注入结果: {content_str}")
 
         """处理输出数据"""
         self.outputs = {

@@ -1,7 +1,7 @@
 import json
 from typing import List, Tuple, AsyncGenerator, Dict, Any
 
-from services.article_agent.structured_draft.style_infusion_agent import ChapterAndStyleAgent
+from services.article_agent.structured_draft.chapter_and_style_agent import ChapterAndStyleAgent
 from services.llm.workflow.node import Node
 
 

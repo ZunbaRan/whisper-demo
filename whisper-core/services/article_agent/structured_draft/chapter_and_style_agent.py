@@ -28,8 +28,12 @@ class ChapterAndStyleAgent(BaseAgent):
     3.  **！！！绝对严格遵守风格指南！！！:** 在遣词造句（词汇选择、句式结构、句子长度）、语气语态、段落构建、修辞使用等方面，**必须**完全符合提供的“[作者姓名] 风格指南”中的所有规定。
     4.  **确保流畅性:** 如果提供了上一章节内容，确保开头能顺畅衔接。章节内部逻辑清晰，过渡自然。
     5.  **符合字数要求:** 力求达到预估字数范围, 大约 {estimated_length} 字。
+    
+    **注意事项:**
+    1. **不要显示的说明章节：** 所有的章节属于同一篇文章的不同段落，不是实际的段落分割，因此不能在文中说明类似“上一章节讨论了...” “下一章再讨论...”等字样
+    2. **素材汉化:** 对于金句、例子等内容，**必须**使用中文进行翻译。如果直接引用“金句、例证”等素材，只需要使用 > 符号进行标注，不要出现类似“我们引用的金句..” “有人曾说过...”等字样
 
-    **输出格式:**
+    **输出格式 markdown:**
     **仅提供当前所撰写章节的完整文本。不要包含任何额外的说明、标题或注释，除非是章节本身的标题（如果大纲中有）。
 
     **约束:** 风格模仿的准确性是最高优先级。内容需服务于章节目标。
@@ -46,6 +50,8 @@ class ChapterAndStyleAgent(BaseAgent):
         style_guide = self.context.get("style_guide", "")
         selected_angle = self.context.get("selected_angle", "")
         previous_chapter = self.context.get("previous_chapter", "")
+        chapter_key_points = self.context.get("chapter_key_points", "")
+        content_elements = self.context.get("content_elements", "")
         estimated_length = self.context.get("estimated_length", 500)
         
         prompt = await self.build_prompt(
@@ -56,6 +62,8 @@ class ChapterAndStyleAgent(BaseAgent):
             style_guide=style_guide,
             previous_chapter=previous_chapter,
             estimated_length=estimated_length,
+            chapter_key_points=chapter_key_points,
+            content_elements=content_elements,
             selected_angle=selected_angle
         )
         return [{'role': 'user', 'content': prompt}]

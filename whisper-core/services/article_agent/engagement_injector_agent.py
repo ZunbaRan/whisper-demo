@@ -63,49 +63,12 @@ class EngagementInjectorAgent(BaseAgent):
         return [{'role': 'user', 'content': prompt}]
 
     async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
-        """处理响应"""
-        try:
-            # 合并所有响应内容
-            full_response = ""
-            async for role, content in response:
-                if role == "assistant":
-                    full_response += content
-                    yield role, content
-
-            # 解析响应
-            result = await self.parse_response(full_response)
-            self.context["injection_result"] = result
-            
-            # 返回完成消息
-            yield "assistant", "互动元素注入完成"
-            yield "done", ""
-            
-        except Exception as e:
-            logger.error(f"处理互动注入响应失败: {str(e)}")
-            yield "error", str(e)
+        async for role, content in response:
+            yield role, content
+        yield 'assistant', '互动元素注入完成'
 
     async def parse_response(self, response: str) -> Dict[str, Any]:
-        """解析响应"""
-        try:
-            # 提取JSON内容
-            if "```json" in response:
-                start = response.find("```json") + 7
-                end = response.find("```", start)
-                if end != -1:
-                    json_content = response[start:end].strip()
-                    return json.loads(json_content)
-            
-            # 如果没有找到JSON标记，尝试直接解析
-            return json.loads(response)
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"解析JSON响应失败: {str(e)}")
-            return {
-                "revised_section": "",
-                "engagement_points": [],
-                "ethical_checks": [],
-                "style_alignment": []
-            }
+        pass
 
     async def post_process(self) -> None:
         """后置处理"""
