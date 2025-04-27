@@ -24,10 +24,8 @@ class DepthEnhancerNode(Node):
             "style_guide": self.inputs.get("style_guide"),
             "draft": self.inputs.get("draft", "")
         }
-        pass
 
     async def process_output(self, results: List[Tuple[str, str]]) -> None:
-        logger.info("深度与细微差别增强师")
 
         # 提取元组集合中所有的 content 部分
         content_list = [result[1] for result in results]
@@ -36,8 +34,7 @@ class DepthEnhancerNode(Node):
         self.outputs = {
             "enhancement_result": content_str
         }
-
-        logger.info(f"深度与细微差别增强师输出: {content_str}")
+        print("深度与细微差别增强师执行完毕")
 
     def __init__(self, name: str = "depth_enhancer"):
         super().__init__(name, DepthEnhancerAgent())

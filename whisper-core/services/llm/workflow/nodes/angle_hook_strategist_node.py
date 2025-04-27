@@ -31,7 +31,7 @@ class AngleHookStrategistNode(Node):
         # - emotional_integration: 共鸣情感元素整合策略（字符串）"""
         content_list = [result[1] for result in results]
         content_str = "".join(content_list)  # 使用空字符串拼接
-        print(f"角度钩选策略结果: {content_str}")
+        print("角度钩选策略node执行完毕")
 
         angles = await self.agent.parse_response(content_str)
         self.outputs = {

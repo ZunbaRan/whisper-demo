@@ -30,8 +30,6 @@ class ThemeAnalysisNode(Node):
         # 提取元组集合中所有的 content 部分, 并直接拼接为一个str
         content_list = [result[1] for result in results]
         content_str = "".join(content_list)  # 使用空字符串拼接
-        print(f"风格指南生成结果: {content_str}")
-
 
         # {"main_theme": "", "thesis": "", "sub_topics": []}
         con_theme = await self.agent.parse_response(content_str)
@@ -40,3 +38,4 @@ class ThemeAnalysisNode(Node):
         self.outputs = {
             "theme_result": con_theme
         }
+        print("风格指南生成结果node执行完毕")

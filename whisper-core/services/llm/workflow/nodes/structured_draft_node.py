@@ -72,13 +72,13 @@ class StructuredDraftNode(Node):
         # 提取元组集合中所有的 content 部分, 并直接拼接为一个str
         content_list = [result[1] for result in results]
         content_str = "".join(content_list)  # 使用空字符串拼接
-        print(f"结构化草稿结果: {content_str}")
-
         sections = await self.agent.parse_response(content_str)
         """处理输出数据"""
         self.outputs = {
             "sections": sections
         }
+
+        print("结构化草稿结果node执行完毕")
 
     def __init__(self, name: str = "structured_draft"):
         super().__init__(name, StructuredDraftAgent())

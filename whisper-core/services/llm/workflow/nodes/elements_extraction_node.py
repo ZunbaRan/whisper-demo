@@ -28,7 +28,6 @@ class ElementsExtractionNode(Node):
         # 提取元组集合中所有的 content 部分, 并直接拼接为一个str
         content_list = [result[1] for result in results]
         content_str = "".join(content_list)  # 使用空字符串拼接
-        print(f"元素提取结果: {content_str}")
 
         # {
         #     "golden_quotes": [],
@@ -51,4 +50,5 @@ class ElementsExtractionNode(Node):
         self.outputs = {
             "elements_info": elements_info
         }
+        print("元素提取结果node执行完毕")
 

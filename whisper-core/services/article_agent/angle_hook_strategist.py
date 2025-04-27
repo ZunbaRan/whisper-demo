@@ -7,6 +7,11 @@ logger = logging.getLogger(__name__)
 
 
 class AngleHookStrategist(BaseAgent):
+
+    def __init__(self, model_name: str = "Gemini/gemini-2.5-pro"):
+        super().__init__(model_name)
+        self.PROMPT_TEMPLATE = None
+
     """角度与引子策略师"""
 
     PROMPT_TEMPLATE = """
@@ -67,13 +72,12 @@ class AngleHookStrategist(BaseAgent):
         key_points = self.context["golden_quotes"]  # 取前三个关键点
         examples = self.context["examples"]  # 取前三个例子
 
-
         prompt = await self.build_prompt(
             self.PROMPT_TEMPLATE,
             thesis=thesis,
             main_theme=main_theme,
-            examples= json.dumps(examples, ensure_ascii=False, indent=4),
-            key_points= "\n".join(key_points),
+            examples=json.dumps(examples, ensure_ascii=False, indent=4),
+            key_points="\n".join(key_points),
             target_audience=self.target_audience,
             emotional_elements=self.emotional_elements
         )
@@ -96,7 +100,7 @@ class AngleHookStrategist(BaseAgent):
             if "```json" in response:
                 start = response.find("```json") + 7
                 end = response.find("```", start)
-                if end!= -1:
+                if end != -1:
                     json_content = response[start:end].strip()
                     return json.loads(json_content)
             else:

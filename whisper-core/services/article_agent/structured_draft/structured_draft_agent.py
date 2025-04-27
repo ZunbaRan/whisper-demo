@@ -1,5 +1,5 @@
 import json
-from typing import AsyncGenerator, Dict, Any, List, Tuple
+from typing import AsyncGenerator, Dict, Any, List, Tuple, Coroutine
 
 from services.llm.agent.base_agent import BaseAgent, logger
 
@@ -7,29 +7,16 @@ from services.llm.agent.base_agent import BaseAgent, logger
 class StructuredDraftAgent(BaseAgent):
     """结构化草稿Agent，负责创建详细的文章大纲"""
 
-    PROMPT_TEMPLATE = """角色: 你是一位经验丰富的文章结构规划师，负责创建详细且连贯的文章大纲。
-背景: 
-- 播客主题: {theme_result}
-- 选定角度: {selected_angle}
-- 播客结构大纲: {structure_outline}
-- 播客内容元素: {elements_info}
+    PROMPT_TEMPLATE_PATH = "services/article_agent/structured_draft/structured_draft_prompt_temp.md"
 
-任务: 基于以上信息，创建一个详细的文章大纲，要求：
-1. 保持原有结构的逻辑性
-2. 在适当位置整合关键引言、示例和数据点
-3. 确保每个部分都有明确的目的和内容要点
-4. 考虑文章的整体流畅性和过渡
-
-输出格式: 请以JSON格式返回结果，包含以下字段：
-- sections: 章节列表，每个章节包含：
-  - chapter_title: 章节标题
-  - chapter_purpose: 章节目的
-  - chapter_key_points: 关键要点列表
-  - content_elements: 内容元素列表（包含引言、示例、数据等）
-  - estimated_length: 预计字数"""
+    def __init__(self, model_name: str = "Gemini/gemini-2.5-pro"):
+        super().__init__(model_name)
+        self.PROMPT_TEMPLATE = None
 
     async def pre_process(self) -> None:
-        pass
+        # 读取文件
+        with open(self.PROMPT_TEMPLATE_PATH, 'r', encoding='utf-8') as file:
+            self.PROMPT_TEMPLATE = file.read()
 
     async def build_messages(self) -> List[Dict[str, str]]:
         # 从context中获取所需信息
@@ -56,7 +43,7 @@ class StructuredDraftAgent(BaseAgent):
     async def post_process(self) -> None:
         pass
 
-    async def parse_response(self, response: str) -> list[dict[str, Any]]:
+    async def parse_response(self, response: str) -> dict[Any, Any] | None | Any:
         try:
             # 提取JSON内容
             if "```json" in response:
@@ -70,4 +57,4 @@ class StructuredDraftAgent(BaseAgent):
 
         except json.JSONDecodeError as e:
             logger.error(f"解析JSON响应失败: {str(e)}")
-            return []
+            return {}
