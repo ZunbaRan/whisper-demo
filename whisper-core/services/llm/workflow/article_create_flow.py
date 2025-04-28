@@ -2,6 +2,9 @@ import os
 import json
 from typing import Dict, Any, AsyncGenerator, List, Tuple, Optional
 import logging
+from pathlib import Path
+import markdown
+from datetime import datetime
 
 from .nodes.angle_hook_strategist_node import AngleHookStrategistNode
 from .nodes.chapter_and_style_node import ChapterAndStyleNode
@@ -30,6 +33,8 @@ class ArticleCreateFlow:
         self.author_name = author_name
         self.workflow = Workflow("article_create_flow", tid=tid)
         self.context = self.workflow.context
+        self._output_dir = Path("output/articles")  # 输出目录
+        self._ensure_output_dir()
 
         print(f"tid: {self.workflow.get_tid()}")
 
@@ -73,6 +78,34 @@ class ArticleCreateFlow:
                                       self.engagement_injector_node.name,
                                       ])
 
+    def _ensure_output_dir(self) -> None:
+        """确保输出目录存在"""
+        self._output_dir.mkdir(parents=True, exist_ok=True)
+
+    def _get_tid_dir(self, tid: str) -> Path:
+        """获取任务ID对应的目录
+        
+        Args:
+            tid: 任务ID
+            
+        Returns:
+            Path: 任务目录路径
+        """
+        tid_dir = self._output_dir / tid
+        tid_dir.mkdir(parents=True, exist_ok=True)
+        return tid_dir
+
+    def _save_markdown(self, content: str, file_path: Path) -> None:
+        """保存Markdown内容到文件
+        
+        Args:
+            content: Markdown内容
+            file_path: 文件路径
+        """
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        logger.info(f"文件已保存到: {file_path}")
+
     async def create_article(self, content: str) -> AsyncGenerator[Tuple[str, str], None]:
         """创建文章
         
@@ -96,6 +129,30 @@ class ArticleCreateFlow:
         # 执行工作流
         async for result in self.workflow.execute(initial_inputs):
             yield result
+
+        # 获取各个阶段的结果
+        draft = self.workflow.context.get("draft", "")
+        enhancement_result = self.workflow.context.get("enhancement_result", "")
+        engagement_injector = self.workflow.context.get("engagement_injector", "")
+        
+        # 获取任务ID并创建对应的目录
+        tid = self.workflow.get_tid()
+        tid_dir = self._get_tid_dir(tid)
+
+        # 保存各个阶段的Markdown内容
+        self._save_markdown(draft, tid_dir / "draft.md")
+        self._save_markdown(enhancement_result, tid_dir / "enhancement.md")
+        self._save_markdown(engagement_injector, tid_dir / "engagement.md")
+
+        # 创建元信息文件
+        meta_info = {
+            "author": self.author_name,
+            "tid": tid,
+            "created_at": datetime.now().isoformat(),
+            "files": ["draft.md", "enhancement.md", "engagement.md"]
+        }
+        with open(tid_dir / "meta.json", 'w', encoding='utf-8') as f:
+            json.dump(meta_info, f, ensure_ascii=False, indent=2)
 
     async def resume_from_node(self, node_name: str) -> AsyncGenerator[Tuple[str, str], None]:
         """从指定节点继续执行工作流
