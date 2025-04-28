@@ -25,6 +25,5 @@ uvicorn~=0.29.0
 volcengine_python_sdk==1.0.130
 whisperx==3.3.1
 xmltodict==0.14.2
-markdown==3.6.0
 requests~=2.32.3
 google-genai==1.11.0

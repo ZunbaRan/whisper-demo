@@ -3,7 +3,6 @@ import json
 from typing import Dict, Any, AsyncGenerator, List, Tuple, Optional
 import logging
 from pathlib import Path
-import markdown
 from datetime import datetime
 
 from .nodes.angle_hook_strategist_node import AngleHookStrategistNode
@@ -91,7 +90,9 @@ class ArticleCreateFlow:
         Returns:
             Path: 任务目录路径
         """
-        tid_dir = self._output_dir / tid
+        # 确保tid是字符串类型
+        tid_str = str(tid)
+        tid_dir = self._output_dir / tid_str
         tid_dir.mkdir(parents=True, exist_ok=True)
         return tid_dir
 
@@ -147,7 +148,7 @@ class ArticleCreateFlow:
         # 创建元信息文件
         meta_info = {
             "author": self.author_name,
-            "tid": tid,
+            "tid": str(tid),  # 确保tid是字符串
             "created_at": datetime.now().isoformat(),
             "files": ["draft.md", "enhancement.md", "engagement.md"]
         }
