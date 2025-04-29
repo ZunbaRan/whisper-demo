@@ -7,7 +7,7 @@ from datetime import datetime
 class OutputManager:
     """输出管理器"""
     
-    def __init__(self, output_dir: str = "output", tid: str = None):
+    def __init__(self, output_dir: str = "output", tid: str = uuid.uuid4()):
         self.output_dir = output_dir
         self.tid = tid
         self.outputs: Dict[str, Dict[str, Any]] = {}

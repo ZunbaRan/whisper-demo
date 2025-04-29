@@ -1,3 +1,4 @@
+import uuid
 from typing import Dict, Any, AsyncGenerator, Optional, List, Tuple
 from abc import ABC, abstractmethod
 from services.llm.agent.base_agent import BaseAgent
@@ -9,13 +10,14 @@ logger = logging.getLogger(__name__)
 class Node(ABC):
     """工作流节点基类"""
     
-    def __init__(self, name: str, agent: BaseAgent):
+    def __init__(self, name: str, agent: BaseAgent, tid: Optional[str]):
         self.name = name
         self.agent = agent
         self.context: Dict[str, Any] = {}
         self.inputs: Dict[str, Any] = {}
         self.outputs: Dict[str, Any] = {}
         self.call_results: List[Tuple[str, str]] = []
+        self.tid: tid or uuid.uuid4()
         
     async def execute(self, inputs: Dict[str, Any]) -> AsyncGenerator[Tuple[str, str], None]:
         """执行节点

@@ -46,26 +46,8 @@ class SummaryThemeAgent(BaseAgent):
         return [{'role': 'user', 'content': prompt}]
 
     async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
-        """处理响应"""
-        try:
-            # 合并所有响应内容
-            full_response = ""
-            for role, content in response:
-                if role == "assistant":
-                    full_response += content
-                    yield (role, content)
-
-            # 解析总结结果
-            summary_result = await self.parse_response(full_response)
-            self.context["summary_result"] = summary_result
-            
-            # 输出总结完成消息
-            yield ("assistant", "主题总结完成")
-            yield ("done", "")
-            
-        except Exception as e:
-            logger.error(f"处理主题总结响应失败: {str(e)}")
-            yield ("error", str(e))
+        async for item in super().process_response(response):
+            yield item
 
     async def parse_response(self, response: str) -> Dict[str, Any]:
         """解析响应"""
@@ -93,4 +75,4 @@ class SummaryThemeAgent(BaseAgent):
 
     async def post_process(self) -> None:
         """后置处理"""
-        pass
+        await super().post_process()

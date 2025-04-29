@@ -2,6 +2,7 @@ from typing import Dict, List, Any, AsyncGenerator, Tuple, Coroutine
 import json
 import logging
 from services.llm.agent.base_agent import BaseAgent
+from services.llm.utils.format_json import FormatJson
 
 logger = logging.getLogger(__name__)
 
@@ -96,15 +97,4 @@ class AngleHookStrategist(BaseAgent):
 
     async def parse_response(self, response: str) -> list:
         """解析响应"""
-        try:
-            if "```json" in response:
-                start = response.find("```json") + 7
-                end = response.find("```", start)
-                if end != -1:
-                    json_content = response[start:end].strip()
-                    return json.loads(json_content)
-            else:
-                return json.loads("".join(response))
-        except json.JSONDecodeError as e:
-            logger.error(f"解析JSON响应失败: {str(e)}")
-            return []
+        return await FormatJson.llm_parse(response)

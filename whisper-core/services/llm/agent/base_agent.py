@@ -118,12 +118,16 @@ class BaseAgent(ABC):
         Yields:
             Tuple[str, str]: (role, content) 元组
         """
-        pass
+        async for role, content in response:
+            yield role, content
 
     @abstractmethod
     async def post_process(self) -> None:
         """后置处理，在所有处理完成后的清理工作"""
-        pass
+        content_list = [result[1] for result in self.response_stream]
+        content_str = "".join(content_list)
+        format_res = await self.parse_response(content_str)
+        self.context["format_res"] = format_res
 
     @abstractmethod
     async def parse_response(self, response: str) ->  Union[dict, list, str, int, float, bool, None]:

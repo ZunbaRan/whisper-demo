@@ -1,14 +1,14 @@
-from abc import ABC
+import uuid
 from typing import List, Tuple, AsyncGenerator
 
 from services.article_agent.podcast_deconstructor.structure_analysis_agent import StructureAnalysisAgent
-from services.llm.workflow.node import Node
+from services.llm.workflow.base.node import Node
 
 
 class StructureAnalysisNode(Node):
 
-    def __init__(self, name: str = "structure_analysis"):
-        super().__init__(name, StructureAnalysisAgent())
+    def __init__(self, tid: str = uuid.uuid4(), name: str = "structure_analysis"):
+        super().__init__(name, StructureAnalysisAgent(), tid)
 
 
     async def call(self) -> AsyncGenerator[Tuple[str, str], None]:

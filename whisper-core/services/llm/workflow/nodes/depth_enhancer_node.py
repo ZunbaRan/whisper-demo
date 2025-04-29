@@ -1,8 +1,9 @@
 import json
+import uuid
 from typing import List, Tuple, AsyncGenerator
 
 from services.article_agent.depth_enhancer_agent import DepthEnhancerAgent
-from services.llm.workflow.node import Node, logger
+from services.llm.workflow.base.node import Node
 
 
 class DepthEnhancerNode(Node):
@@ -36,5 +37,5 @@ class DepthEnhancerNode(Node):
         }
         print("深度与细微差别增强师执行完毕")
 
-    def __init__(self, name: str = "depth_enhancer"):
-        super().__init__(name, DepthEnhancerAgent())
+    def __init__(self, tid: str = uuid.uuid4(), name: str = "depth_enhancer"):
+        super().__init__(name, DepthEnhancerAgent(), tid)

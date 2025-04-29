@@ -1,14 +1,15 @@
 import json
+import uuid
 from typing import List, Tuple, Any, AsyncGenerator
 
 from services.article_agent.podcast_deconstructor.elements_extraction_agent import ElementsExtractionAgent
-from services.llm.workflow.node import Node
+from services.llm.workflow.base.node import Node
 
 
 class ElementsExtractionNode(Node):
 
-    def __init__(self, name: str = "elements_extraction"):
-        super().__init__(name, ElementsExtractionAgent())
+    def __init__(self, tid: str = uuid.uuid4(), name: str = "elements_extraction"):
+        super().__init__(name, ElementsExtractionAgent(), tid)
 
     async def call(self) -> AsyncGenerator[Tuple[str, str], None]:
         """元素提取"""

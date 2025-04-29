@@ -1,8 +1,9 @@
 import json
-from typing import List, Tuple, AsyncGenerator, Dict, Any
+import uuid
+from typing import List, Tuple, AsyncGenerator
 
 from services.article_agent.structured_draft.chapter_and_style_agent import ChapterAndStyleAgent
-from services.llm.workflow.node import Node
+from services.llm.workflow.base.node import Node
 
 
 class ChapterAndStyleNode(Node):
@@ -59,5 +60,5 @@ class ChapterAndStyleNode(Node):
             "draft": content_str
         }
 
-    def __init__(self, name: str = "chapter_and_style"):
-        super().__init__(name, ChapterAndStyleAgent())
+    def __init__(self, tid: str = uuid.uuid4(), name: str = "chapter_and_style"):
+        super().__init__(name, ChapterAndStyleAgent(), tid)

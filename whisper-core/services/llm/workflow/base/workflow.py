@@ -2,7 +2,7 @@ import uuid
 import json
 import os
 from typing import Dict, Any, AsyncGenerator, List, Optional, Tuple
-from .node import Node
+from services.llm.workflow.base.node import Node
 
 
 class Workflow:

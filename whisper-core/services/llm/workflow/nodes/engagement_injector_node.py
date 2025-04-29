@@ -1,7 +1,8 @@
+import uuid
 from typing import List, Tuple, AsyncGenerator
 
 from services.article_agent.engagement_injector_agent import EngagementInjectorAgent
-from services.llm.workflow.node import Node
+from services.llm.workflow.base.node import Node
 
 
 class EngagementInjectorNode(Node):
@@ -32,5 +33,5 @@ class EngagementInjectorNode(Node):
 
         print("互动元素注入结果node执行完毕")
 
-    def __init__(self, name: str = "engagement_injector"):
-        super().__init__(name, EngagementInjectorAgent())
+    def __init__(self, tid: str = uuid.uuid4(), name: str = "engagement_injector"):
+        super().__init__(name, EngagementInjectorAgent(), tid)

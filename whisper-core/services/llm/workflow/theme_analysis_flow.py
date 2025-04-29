@@ -3,9 +3,9 @@ import json
 from typing import AsyncGenerator, Tuple
 import logging
 
-from ..theme_analysis.one_theme_node import OneThemeNode
-from ..theme_analysis.summary_theme_node import SummaryThemeNode
-from ...workflow import Workflow
+from services.llm.workflow.nodes.theme_analysis.one_theme_node import OneThemeNode
+from services.llm.workflow.nodes.theme_analysis.summary_theme_node import SummaryThemeNode
+from services.llm.workflow.base.workflow import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,8 @@ class ThemeAnalysisFlow:
         self.context = self.workflow.context
 
         # 创建节点
-        self.one_theme_node = OneThemeNode()
-        self.summary_theme_node = SummaryThemeNode()
+        self.one_theme_node = OneThemeNode(self.workflow.get_tid())
+        self.summary_theme_node = SummaryThemeNode(self.workflow.get_tid())
 
         # 添加节点到工作流
         self.workflow.add_node(self.one_theme_node)

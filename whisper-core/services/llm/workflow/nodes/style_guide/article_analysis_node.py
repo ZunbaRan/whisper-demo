@@ -1,18 +1,19 @@
-from typing import Dict, Any, AsyncGenerator, List, Tuple
+import uuid
+from typing import Dict, AsyncGenerator, List, Tuple
 import os
 import json
 import logging
 
 from services.article_agent.author_style_analyzer.single_article_analyzer_agent import SingleArticleAnalyzer
-from services.llm.workflow.node import Node
+from services.llm.workflow.base.node import Node
 
 logger = logging.getLogger(__name__)
 
 class ArticleAnalysisNode(Node):
     """文章分析节点"""
     
-    def __init__(self, name: str = "article_analysis"):
-        super().__init__(name, SingleArticleAnalyzer())
+    def __init__(self, tid: str = uuid.uuid4(), name: str = "article_analysis"):
+        super().__init__(name, SingleArticleAnalyzer(), tid)
 
     async def prepare_context(self) -> None:
         """准备上下文数据"""

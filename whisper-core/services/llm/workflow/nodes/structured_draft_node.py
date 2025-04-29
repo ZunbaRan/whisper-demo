@@ -1,8 +1,9 @@
 import json
+import uuid
 from typing import List, Tuple, AsyncGenerator
 
 from services.article_agent.structured_draft.structured_draft_agent import StructuredDraftAgent
-from services.llm.workflow.node import Node
+from services.llm.workflow.base.node import Node
 
 
 class StructuredDraftNode(Node):
@@ -80,5 +81,5 @@ class StructuredDraftNode(Node):
 
         print("结构化草稿结果node执行完毕")
 
-    def __init__(self, name: str = "structured_draft"):
-        super().__init__(name, StructuredDraftAgent())
+    def __init__(self, tid: str = uuid.uuid4(), name: str = "structured_draft"):
+        super().__init__(name, StructuredDraftAgent(), tid)

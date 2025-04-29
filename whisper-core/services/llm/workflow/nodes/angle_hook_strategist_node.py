@@ -1,8 +1,8 @@
-import json
+import uuid
 from typing import List, Tuple, AsyncGenerator
 
 from services.article_agent.angle_hook_strategist import AngleHookStrategist
-from services.llm.workflow.node import Node
+from services.llm.workflow.base.node import Node
 
 
 class AngleHookStrategistNode(Node):
@@ -38,5 +38,5 @@ class AngleHookStrategistNode(Node):
             "angles": angles
         }
 
-    def __init__(self, name: str = "angle_hook_strategist"):
-        super().__init__(name, AngleHookStrategist())
+    def __init__(self, tid: str = uuid.uuid4(), name: str = "angle_hook_strategist"):
+        super().__init__(name, AngleHookStrategist(), tid)

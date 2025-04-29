@@ -843,7 +843,6 @@ app.include_router(author_style_router, prefix="/author-style", tags=["author-st
 from api.article_style_create_api import router as article_style_create_router
 app.include_router(article_style_create_router, prefix="/article-style-create", tags=["article-style-create"])
 
-from services.llm.workflow.nodes.theme_ana.theme_analysis_flow import ThemeAnalysisFlow
 from api.theme_analysis_api import router as theme_analysis_router
 
 # 添加主题分析路由
