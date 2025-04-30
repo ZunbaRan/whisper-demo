@@ -8,7 +8,7 @@ from starlette.responses import StreamingResponse
 from services.deep_research.deep_research import DeepResearch
 from services.deep_research.markdown_report import MarkdownReport
 from services.deep_research.models import ChatRequest, Message
-from services.llm.search_agent.web_search_agent import WebSearchAgent
+from services.llm.search_agent.gemini_web_search_agent import GeminiWebSearchAgent
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ async def web_search_api(query:str) -> str:
     return:
         搜索结果
     """
-    web_search_agent = WebSearchAgent()
+    web_search_agent = GeminiWebSearchAgent()
 
     call_results: List[str] = []
     async for role, content in web_search_agent.call(query = query):

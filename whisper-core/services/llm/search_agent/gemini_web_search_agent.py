@@ -3,22 +3,9 @@ from typing import Dict, Any, List, Union, AsyncGenerator, Tuple
 from google.genai.types import GenerateContentConfig, GoogleSearch, Tool
 
 from services.llm.agent.base_agent import BaseAgent
-from pydantic import BaseModel
 
-class SearchReference(BaseModel):
-    """搜索结果的参考来源"""
-    site: str
-    url: str
-    content: str
-    title: str
 
-class SearchResult(BaseModel):
-    """搜索结果"""
-    query: str
-    summary_content: str
-    search_references: List[SearchReference]
-
-class WebSearchAgent(BaseAgent):
+class GeminiWebSearchAgent(BaseAgent):
     """使用 Gemini 进行联网搜索的 Agent"""
 
     def __init__(self):
