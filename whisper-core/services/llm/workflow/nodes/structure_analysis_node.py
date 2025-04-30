@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Tuple, AsyncGenerator
 
-from services.article_agent.podcast_deconstructor.structure_analysis_agent import StructureAnalysisAgent
+from services.llm.article_agent.podcast_deconstructor.structure_analysis_agent import StructureAnalysisAgent
 from services.llm.workflow.base.node import Node
 
 

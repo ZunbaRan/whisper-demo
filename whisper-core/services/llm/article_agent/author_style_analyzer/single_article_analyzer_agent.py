@@ -1,7 +1,7 @@
 import json
 from typing import AsyncGenerator, Tuple, Dict, Any, List
 
-from services.article_agent.angle_hook_strategist import logger
+from services.llm.article_agent.angle_hook_strategist import logger
 from services.llm.agent.base_agent import BaseAgent
 
 

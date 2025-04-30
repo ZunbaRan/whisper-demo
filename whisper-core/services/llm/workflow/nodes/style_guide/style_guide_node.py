@@ -1,7 +1,7 @@
 import uuid
 from typing import AsyncGenerator, Tuple, List
 
-from services.article_agent.author_style_analyzer.style_guide_generator_agent import StyleGuideGenerator
+from services.llm.article_agent.author_style_analyzer.style_guide_generator_agent import StyleGuideGenerator
 import json
 
 from services.llm.workflow.base.node import Node

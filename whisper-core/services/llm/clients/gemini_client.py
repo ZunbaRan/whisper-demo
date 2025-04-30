@@ -6,6 +6,8 @@ import json
 from google import genai
 from google.genai import types
 from google.genai import _api_client
+from google.genai.types import GenerateContentConfig
+
 from ..clients.base_client import BaseClient
 from ..utils.logger import logger
 
@@ -150,6 +152,7 @@ class GeminiClient(BaseClient):
         messages: List[Dict[str, str]],
         model: str,
         is_origin_reasoning: bool = True,
+        config: Optional[Any] = None
     ) -> AsyncGenerator[tuple[str, str], None]:
         """流式对话
 
@@ -157,15 +160,20 @@ class GeminiClient(BaseClient):
             messages: 消息列表
             model: 模型名称
             is_origin_reasoning: 是否使用原生推理
+            config: 配置参数
 
         Yields:
             tuple[str, str]: (内容类型, 内容)
                 内容类型: "reasoning" 或 "content"
                 内容: 实际的文本内容
         """
-        config = types.GenerateContentConfig(
+        if config is None:
+            config = types.GenerateContentConfig(
             temperature=0.7
         )
+        # else:
+        #     # 在config的属性中加入temperature
+        #     config.temperature = 0.7
 
         try:
             #  提取messages中的第一个key为system的值
@@ -191,6 +199,15 @@ class GeminiClient(BaseClient):
                 if chunk.text:
                     # Gemini 目前不支持原生推理，所有内容都作为普通内容返回
                     yield "content", chunk.text
+
+                # if chunk.candidates[0].content.parts:
+                #     for part in chunk.candidates[0].content.parts:
+                #         yield "parts", part.text
+                search_entry_point = chunk.candidates[0].grounding_metadata.search_entry_point
+                # 如果 search_entry_point 包含 rendered_content 字段
+                if search_entry_point and hasattr(search_entry_point, 'rendered_content'):
+                    print("===========" + chunk.candidates[0].grounding_metadata.search_entry_point.rendered_content)
+
 
         except Exception as e:
             error_msg = f"流式对话失败: {str(e)}"

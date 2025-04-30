@@ -2,7 +2,7 @@ import json
 import uuid
 from typing import List, Tuple, AsyncGenerator
 
-from services.article_agent.depth_enhancer_agent import DepthEnhancerAgent
+from services.llm.article_agent.depth_enhancer_agent import DepthEnhancerAgent
 from services.llm.workflow.base.node import Node
 
 

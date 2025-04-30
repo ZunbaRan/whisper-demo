@@ -1,7 +1,7 @@
 """基础客户端类,定义通用接口"""
 
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Optional, Any
 
 import aiohttp
 from aiohttp.client_exceptions import ClientError, ServerTimeoutError
@@ -151,13 +151,14 @@ class BaseClient(ABC):
 
     @abstractmethod
     async def stream_chat(
-        self, messages: list, model: str
+        self, messages: list, model: str, config: Optional[Any] = None
     ) -> AsyncGenerator[tuple[str, str], None]:
         """流式对话，由子类实现
 
         Args:
             messages: 消息列表
             model: 模型名称
+            config: 配置参数
 
         Yields:
             tuple[str, str]: (内容类型, 内容)

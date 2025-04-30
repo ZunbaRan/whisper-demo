@@ -16,6 +16,9 @@ class OpenAICompatibleClient(BaseClient):
     用于处理符合 OpenAI API 格式的服务,如 Gemini 等
     """
 
+    def _patch_proxy(self, client, proxy: str) -> None:
+        pass
+
     def __init__(
         self,
         api_key: str,
@@ -102,6 +105,7 @@ class OpenAICompatibleClient(BaseClient):
             messages: list,
             model: str = "deepseek-ai/DeepSeek-R1",
             is_origin_reasoning: bool = True,
+            config: Optional[Any] = None
     ) -> AsyncGenerator[tuple[str, str], None]:
         """流式对话
 

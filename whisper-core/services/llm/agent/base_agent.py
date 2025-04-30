@@ -41,16 +41,19 @@ class BaseAgent(ABC):
             "files": files or [],
             **kwargs
         }
-        self.response_stream = []  # 清空响应流
 
+        self.response_stream = []  # 清空响应流
         # 前置处理
         await self.pre_process()
+
+        config:Any = self.context.get("config")
+
 
         # 构建消息
         messages = await self.build_messages()
 
         # 调用LLM并处理响应
-        async for role, content in self.process_response(self.call_llm(messages)):
+        async for role, content in self.process_response(self.call_llm(messages, config)):
             self.response_stream.append((role, content))  # 保存响应
             if role == "error":
                 yield "error", content
@@ -91,16 +94,17 @@ class BaseAgent(ABC):
         """
         return template.format(**kwargs)
 
-    async def call_llm(self, messages: List[Dict[str, str]]) -> AsyncGenerator[Tuple[str, str], None]:
+    async def call_llm(self, messages: List[Dict[str, str]], config: Any) -> AsyncGenerator[Tuple[str, str], None]:
         """调用LLM并流式返回响应
 
         Args:
             messages: 发送给LLM的消息列表
+            config: 配置参数
 
         Yields:
             Tuple[str, str]: (role, content) 元组
         """
-        async for role, content in llm_client.chat_stream(self.model_name, messages):
+        async for role, content in llm_client.chat_stream(self.model_name, messages, config):
             yield role, content
 
         # try:

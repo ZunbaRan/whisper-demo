@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Tuple, AsyncGenerator
 
-from services.article_agent.podcast_deconstructor.theme_analysis_agent import ThemeAnalysisAgent
+from services.llm.article_agent.podcast_deconstructor.theme_analysis_agent import ThemeAnalysisAgent
 from services.llm.workflow.base.node import Node
 from services.llm.workflow.base.output_manager import OutputManager
 

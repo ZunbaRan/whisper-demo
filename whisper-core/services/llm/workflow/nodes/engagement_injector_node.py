@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Tuple, AsyncGenerator
 
-from services.article_agent.engagement_injector_agent import EngagementInjectorAgent
+from services.llm.article_agent.engagement_injector_agent import EngagementInjectorAgent
 from services.llm.workflow.base.node import Node
 
 

@@ -4,7 +4,7 @@ import os
 import json
 import logging
 
-from services.article_agent.author_style_analyzer.single_article_analyzer_agent import SingleArticleAnalyzer
+from services.llm.article_agent.author_style_analyzer.single_article_analyzer_agent import SingleArticleAnalyzer
 from services.llm.workflow.base.node import Node
 
 logger = logging.getLogger(__name__)

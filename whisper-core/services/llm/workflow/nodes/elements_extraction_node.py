@@ -2,7 +2,7 @@ import json
 import uuid
 from typing import List, Tuple, Any, AsyncGenerator
 
-from services.article_agent.podcast_deconstructor.elements_extraction_agent import ElementsExtractionAgent
+from services.llm.article_agent.podcast_deconstructor.elements_extraction_agent import ElementsExtractionAgent
 from services.llm.workflow.base.node import Node
 
 

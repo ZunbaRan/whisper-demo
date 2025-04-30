@@ -2,7 +2,7 @@ import json
 import uuid
 from typing import List, Tuple, AsyncGenerator
 
-from services.article_agent.structured_draft.structured_draft_agent import StructuredDraftAgent
+from services.llm.article_agent.structured_draft.structured_draft_agent import StructuredDraftAgent
 from services.llm.workflow.base.node import Node
 
 

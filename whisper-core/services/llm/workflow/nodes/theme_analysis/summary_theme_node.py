@@ -1,7 +1,7 @@
 import uuid
 from typing import AsyncGenerator, Tuple, List
 
-from services.article_agent.article_theme_analyze.summary_theme_agent import SummaryThemeAgent
+from services.llm.article_agent.article_theme_analyze.summary_theme_agent import SummaryThemeAgent
 from services.llm.workflow.base.node import Node
 from services.llm.workflow.base.output_manager import OutputManager
 

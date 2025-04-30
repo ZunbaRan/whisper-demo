@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Tuple, AsyncGenerator
 
-from services.article_agent.angle_hook_strategist import AngleHookStrategist
+from services.llm.article_agent.angle_hook_strategist import AngleHookStrategist
 from services.llm.workflow.base.node import Node
 
 
