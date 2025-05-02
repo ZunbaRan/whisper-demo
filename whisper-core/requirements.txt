@@ -27,3 +27,5 @@ whisperx==3.3.1
 xmltodict==0.14.2
 requests~=2.32.3
 google-genai==1.11.0
+volcengine-python-sdk==2.0.1
+zhipuai==2.1.5.20250421

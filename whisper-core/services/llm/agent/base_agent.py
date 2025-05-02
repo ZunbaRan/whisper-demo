@@ -42,7 +42,9 @@ class BaseAgent(ABC):
             **kwargs
         }
 
+
         self.response_stream = []  # 清空响应流
+
         # 前置处理
         await self.pre_process()
 

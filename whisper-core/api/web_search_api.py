@@ -9,6 +9,7 @@ from services.deep_research.deep_research import DeepResearch
 from services.deep_research.markdown_report import MarkdownReport
 from services.deep_research.models import ChatRequest, Message
 from services.llm.search_agent.gemini_web_search_agent import GeminiWebSearchAgent
+from services.llm.search_agent.kimi_web_search_agent import KimiWebSearchAgent
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -21,15 +22,20 @@ async def web_search_api(query:str) -> str:
         搜索结果
     """
     web_search_agent = GeminiWebSearchAgent()
+    kimi_web_search_agent = KimiWebSearchAgent()
 
-    call_results: List[str] = []
-    async for role, content in web_search_agent.call(query = query):
-        call_results.append(content)
+    # call_results: List[str] = []
+    # async for role, content in web_search_agent.call(query = query):
+    #     call_results.append(content)
 
-    res_content = web_search_agent.context["res_content"]
-    parts = web_search_agent.context["parts"]
+    # res_content = web_search_agent.context["res_content"]
+    # parts = web_search_agent.context["parts"]
+    
+    kimi_call_results: List[str] = []
+    async for role, content in kimi_web_search_agent.call(query = query):
+        kimi_call_results.append(content)
 
-    return "".join(call_results)
+    return "".join(kimi_call_results)
 
 
 @router.post("/deep_research")
