@@ -8,9 +8,10 @@ from services.llm.manager.llm_service_manager import llm_service_manager
 class ZhipuWebSearchAgent(BaseAgent):
     """使用智谱AI进行联网搜索的 Agent"""
 
-    def __init__(self):
+    def __init__(self, search_engine):
         super().__init__(model_name="GLM/GLM-4-Air-250414")
         self.model_name = "GLM/GLM-4-Air-250414"
+        self.search_engine = search_engine
         self.PROMPT_TEMPLATE = None
 
     async def pre_process(self) -> None:
@@ -19,7 +20,8 @@ class ZhipuWebSearchAgent(BaseAgent):
     async def build_messages(self) -> List[Dict[str, str]]:
         pass
 
-    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
+    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[
+        Tuple[str, str], None]:
         pass
 
     async def post_process(self) -> None:
@@ -45,18 +47,9 @@ class ZhipuWebSearchAgent(BaseAgent):
         Yields:
             Tuple[str, str]: (role, content) 元组
         """
-        try:
-            # 初始化上下文
-            self.context = {
-                "content": content or '',
-                "files": files or [],
-                "query": content,  # 将内容作为查询
-                **kwargs
-            }
 
-            client, model_config = llm_service_manager.get_client(model_name=self.model_name)
-            # 获取到的client是ZhipuClient
-            response = client.web_search(query=content)
-            yield "assistant", response
-        except Exception as e:
-            yield "error", f"智谱AI调用失败: {str(e)}"
+        client, model_config = llm_service_manager.get_client(model_name=self.model_name)
+        # 获取到的client是ZhipuClient
+        res = await client.web_search_api(search_engine=self.search_engine,
+                                          search_query=content)
+        yield "assistant", res

@@ -10,6 +10,7 @@ from services.deep_research.markdown_report import MarkdownReport
 from services.deep_research.models import ChatRequest, Message
 from services.llm.search_agent.gemini_web_search_agent import GeminiWebSearchAgent
 from services.llm.search_agent.kimi_web_search_agent import KimiWebSearchAgent
+from services.llm.search_agent.zhipu_web_search_agent import ZhipuWebSearchAgent
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -31,12 +32,17 @@ async def web_search_api(query:str) -> str:
     # res_content = web_search_agent.context["res_content"]
     # parts = web_search_agent.context["parts"]
     
-    kimi_call_results: List[str] = []
-    async for role, content in kimi_web_search_agent.call(query = query):
-        kimi_call_results.append(content)
+    # kimi_call_results: List[str] = []
+    # async for role, content in kimi_web_search_agent.call(query = query):
+    #     kimi_call_results.append(content)
 
-    return "".join(kimi_call_results)
+    call_results: list[str]  = []
+    zhipuai_agent = ZhipuWebSearchAgent(search_engine = "Search-Std")
+    async for role, content in zhipuai_agent.call(content = "帮我查询一下最近一周有什么 “社会热点与现象观察”的内容 ，并且具有爆款特征"):
+        call_results.append(content)
 
+    # return "".join(kimi_call_results)
+    return ""
 
 @router.post("/deep_research")
 async def deep_research(

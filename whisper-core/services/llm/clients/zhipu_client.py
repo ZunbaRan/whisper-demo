@@ -26,8 +26,9 @@ class ZhipuClient(BaseClient):
         tuple[str, str], None]:
         pass
 
-    async def web_search(self, query: str) -> WebSearchResp:
-        return self.client.web_search(
-            search_engine="search-pro",
-            search_query=query
+    async def web_search_api(self, search_query: str, search_engine: str) -> WebSearchResp:
+        res = self.client.web_search.web_search(
+            search_engine=search_engine,
+            search_query=search_query
         )
+        return res

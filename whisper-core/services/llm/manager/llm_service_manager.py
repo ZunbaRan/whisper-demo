@@ -5,6 +5,7 @@ from ..clients.base_client import BaseClient
 from ..clients.openai_client import OpenAIClient
 from ..clients.openai_compatible_client import OpenAICompatibleClient
 from ..clients.gemini_client import GeminiClient
+from ..clients.zhipu_client import ZhipuClient
 from ..utils.logger import logger
 from .model_manager import model_manager, ModelConfig
 
@@ -80,6 +81,14 @@ class LLMServiceManager:
             elif model_name.startswith("Kimi/"):
                 # Kimi 客户端需要额外的配置
                 client = OpenAIClient(
+                    api_key=config.api_key,
+                    api_url=config.api_base_url,
+                    api_request_address=config.api_request_address,
+                    proxy=proxy,
+                    reasoner=reasoner
+                )
+            elif model_name.startswith("GLM/"):
+                client = ZhipuClient(
                     api_key=config.api_key,
                     api_url=config.api_base_url,
                     api_request_address=config.api_request_address,
