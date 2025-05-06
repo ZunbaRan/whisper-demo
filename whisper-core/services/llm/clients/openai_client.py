@@ -110,7 +110,7 @@ class OpenAIClient(BaseClient):
         try:
             # 准备请求参数
             params = {
-                "model": model,
+                "model": 'kimi-latest',
                 "messages": self._prepare_messages(messages),
                 "stream": True,
                 "temperature": 0.7
@@ -126,7 +126,7 @@ class OpenAIClient(BaseClient):
                 if tool_type == "builtin_function":
                      # 第一次请求或工具调用时使用非流式请求
                     tool_call = {
-                         "model": "moonshot-v1-auto",
+                         "model": "kimi-latest",
                          "messages": messages,
                          "temperature": 0.3,
                          "tools": config.get("tools"),
@@ -147,10 +147,7 @@ class OpenAIClient(BaseClient):
                                     "name": tool_call_name,
                                     "content": json.dumps(tool_call_args)
                                }
-
                                messages.append(msg)
-
-                
 
             # 调用 OpenAI API 进行流式响应
             response = await self.client.chat.completions.create(**params)

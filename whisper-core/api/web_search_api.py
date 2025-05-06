@@ -8,6 +8,7 @@ from starlette.responses import StreamingResponse
 from services.deep_research.deep_research import DeepResearch
 from services.deep_research.markdown_report import MarkdownReport
 from services.deep_research.models import ChatRequest, Message
+from services.llm.search_agent.ark_web_search_agent import ArkWebSearchAgent
 from services.llm.search_agent.gemini_web_search_agent import GeminiWebSearchAgent
 from services.llm.search_agent.kimi_web_search_agent import KimiWebSearchAgent
 from services.llm.search_agent.zhipu_web_search_agent import ZhipuWebSearchAgent
@@ -24,24 +25,38 @@ async def web_search_api(query:str) -> str:
     """
     web_search_agent = GeminiWebSearchAgent()
     kimi_web_search_agent = KimiWebSearchAgent()
-
-    # call_results: List[str] = []
-    # async for role, content in web_search_agent.call(query = query):
-    #     call_results.append(content)
-
-    # res_content = web_search_agent.context["res_content"]
-    # parts = web_search_agent.context["parts"]
-    
-    # kimi_call_results: List[str] = []
-    # async for role, content in kimi_web_search_agent.call(query = query):
-    #     kimi_call_results.append(content)
-
-    call_results: list[str]  = []
+    ark_web_search_agent = ArkWebSearchAgent()
     zhipuai_agent = ZhipuWebSearchAgent(search_engine = "Search-Std")
-    async for role, content in zhipuai_agent.call(content = "帮我查询一下最近一周有什么 “社会热点与现象观察”的内容 ，并且具有爆款特征"):
+
+    print("\n*******************   Gemini   *******************")
+
+    call_results: List[str] = []
+    async for role, content in web_search_agent.call(content = query):
         call_results.append(content)
 
-    # return "".join(kimi_call_results)
+    res_content = web_search_agent.context["res_content"]
+    parts = web_search_agent.context["parts"]
+
+    print("\n*******************   kimi   *******************")
+
+    kimi_call_results: List[str] = []
+    async for role, content in kimi_web_search_agent.call(content = query):
+        kimi_call_results.append(content)
+
+    print("\n*******************   zhipu   *******************")
+
+    zhipu_call_results: list[str]  = []
+    async for role, content in zhipuai_agent.call(content = query):
+        print(content, end="", flush=True)
+        zhipu_call_results.append(content)
+
+    print("\n*******************   ark   *******************")
+    async for role, content in ark_web_search_agent.call(content = query):
+        print(content, end="", flush=True)
+
+    ark_res = ark_web_search_agent.result
+    ark_res_str = json.dumps(ark_res.model_dump(), ensure_ascii=False, indent=4)
+    print(ark_res_str)
     return ""
 
 @router.post("/deep_research")

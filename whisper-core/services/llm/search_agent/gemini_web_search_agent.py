@@ -33,14 +33,14 @@ class GeminiWebSearchAgent(BaseAgent):
                 "role": "system",
                 "content": """
                 你是一个专业的搜索助手。请根据用户的查询，使用Google搜索获取相关信息，并以清晰、准确的方式呈现搜索结果。
-                输出格式：你需要以json数组的格式返回所有查询的结果
+                输出格式：你需要以json的格式返回所有查询的结果
                 每个结果包含以下字段：
                 - query: 搜索的原问题
                 - summary_content: 根据搜索结果的内容，总结出的主要信息
                 - search_references: 字符串数组，包含搜索结果的URL
-                    - site: 搜索结果引用的网站
+                    - site: 站点名/来源媒体
                     - url: 搜索结果引用的网址
-                    - content: 在该网站中找到的匹配搜索结果的内容总结
+                    - content: 在该网站中找到的匹配搜索结果的内容
                     - title: 该网站中找到的匹配搜索结果的标题
                 """
             },

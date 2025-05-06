@@ -38,6 +38,7 @@ class BaseAgent(ABC):
         # 初始化上下文
         self.context = {
             "content": content or '',
+            "query": content or '',
             "files": files or [],
             **kwargs
         }

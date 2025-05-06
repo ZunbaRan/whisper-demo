@@ -1,6 +1,8 @@
 """LLM 服务管理器"""
 
 from typing import Dict, Optional, Tuple
+
+from services.llm.clients.ark_client import ArkClient
 from ..clients.base_client import BaseClient
 from ..clients.openai_client import OpenAIClient
 from ..clients.openai_compatible_client import OpenAICompatibleClient
@@ -89,6 +91,14 @@ class LLMServiceManager:
                 )
             elif model_name.startswith("GLM/"):
                 client = ZhipuClient(
+                    api_key=config.api_key,
+                    api_url=config.api_base_url,
+                    api_request_address=config.api_request_address,
+                    proxy=proxy,
+                    reasoner=reasoner
+                )
+            elif model_name.startswith("Volcengine/"):
+                client = ArkClient(
                     api_key=config.api_key,
                     api_url=config.api_base_url,
                     api_request_address=config.api_request_address,

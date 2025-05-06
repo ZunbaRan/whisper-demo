@@ -8,7 +8,7 @@ class KimiWebSearchAgent(BaseAgent):
     """使用 Kimi 进行联网搜索的 Agent"""
 
     def __init__(self):
-        super().__init__(model_name="Kimi/moonshot-v1-auto")
+        super().__init__(model_name="Kimi/kimi-latest")
         self.PROMPT_TEMPLATE = None
 
     async def pre_process(self) -> None:
@@ -24,7 +24,8 @@ class KimiWebSearchAgent(BaseAgent):
         ]
         # 新建tools dict
         tools_dict = {'tools': tools,
-                      "response_format": {"type": "json_object"}}
+                      "response_format": {"type": "json_object"},
+                      'max_tokens': 1024*30}
 
         self.context["config"] = tools_dict
         
@@ -40,14 +41,15 @@ class KimiWebSearchAgent(BaseAgent):
             {
                 "role": "system",
                 "content": """
-                你是一个专业的搜索助手。请根据用户的查询，使用联网搜索获取相关信息，并以清晰、准确的方式呈现搜索结果，尽可能多利用网络搜索多获取一些结果。
-                输出格式：你需要以json数组的格式返回所有查询的结果
-                每个结果包含以下字段：
+                你是一个专业的搜索助手。请根据用户的查询，搜索获取相关信息，并以清晰、准确的方式呈现搜索结果
+                **重要**：尽可能多获取一些结果
+                输出格式：你需要以json的格式返回所有查询的结果
+                包含以下字段：
                 - query: 搜索的原问题
                 - summary_content: 根据搜索结果的内容，总结出的主要信息
-                - search_references: 字符串数组，包含搜索结果的URL
-                    - site: 搜索结果引用的网站
-                    - url: 搜索结果引用的网址
+                - search_references: 字符串数组，包含每个搜索结果的URL
+                    - site_name: 站点名/来源媒体
+                    - url: 搜索结果引用链接
                     - content: 该网站中找到的匹配搜索结果的内容，尽可能的把相关内容都展示出来
                     - title: 该网站中找到的匹配搜索结果的标题
                 """
