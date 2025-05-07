@@ -62,4 +62,5 @@ cache/
 models/
 *.bin
 *.pth
-*.json 
+/services/llm/manager/model_config.json
+/workflow_contexts/
