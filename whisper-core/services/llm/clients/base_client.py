@@ -57,7 +57,7 @@ class BaseClient(ABC):
         logger.info(f"设置代理: {self.proxy}")
 
     @abstractmethod
-    def _patch_proxy(self, client, proxy: str) -> None:
+    async def _patch_proxy(self, client, proxy: str) -> None:
         """为客户端应用代理补丁，由子类实现
 
         Args:

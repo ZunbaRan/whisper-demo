@@ -10,7 +10,7 @@ from services.llm.workflow.base.workflow import Workflow
 logger = logging.getLogger(__name__)
 
 
-class ThemeAnalysisFlow:
+class TitleAnalysisFlow:
     """主题分析工作流"""
 
     def __init__(self):

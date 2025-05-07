@@ -11,7 +11,7 @@ from services.llm.workflow.base.workflow import Workflow
 logger = logging.getLogger(__name__)
 
 
-class ArticleAnalysisFlow:
+class StyleAnalysisFlow:
     """文章分析工作流"""
 
     def __init__(self, author_name: str):

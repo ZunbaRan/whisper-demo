@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 import logging
 
 from services.llm.workflow.question_chain_flow import QuestionChainFlow
-from services.llm.workflow.theme_analysis_flow import ThemeAnalysisFlow
+from services.llm.workflow.title_analysis_flow import TitleAnalysisFlow
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ async def analyze_themes(articles_dir: str = "input/article_ana") -> Dict[str, A
     """
 
     # 创建主题分析工作流实例
-    flow = ThemeAnalysisFlow()
+    flow = TitleAnalysisFlow()
 
     results = []
 

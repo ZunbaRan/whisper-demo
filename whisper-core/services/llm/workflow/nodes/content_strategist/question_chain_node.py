@@ -68,7 +68,6 @@ class Question_Chain_Node(Node):
                     })
 
         # 测试直接去前两个文件
-        articles = articles[:3]
         self.context = {
             "articles": articles
         }

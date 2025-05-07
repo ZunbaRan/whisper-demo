@@ -32,7 +32,10 @@ class PatternNode(Node):
 
         format_res = self.agent.context["format_res"]
 
-        self.context["summary_result"] = format_res
+        self.context["patterns"] = format_res
+
+        # 保存到文件
+        self.output_manager.save_str_file("patterns", format_res)
 
         # 设置输出
         self.outputs = {
