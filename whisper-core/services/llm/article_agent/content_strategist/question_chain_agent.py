@@ -6,7 +6,7 @@ from services.llm.agent.base_agent import BaseAgent
 class QuestionChainAgent(BaseAgent):
     """问题链Agent"""
 
-    PROMPT_TEMPLATE = open("Question_Chain.md", "r", encoding="utf-8").read()
+    PROMPT_TEMPLATE = open("services/llm/article_agent/content_strategist/Question_Chain.md", "r", encoding="utf-8").read()
 
     async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[
         Tuple[str, str], None]:

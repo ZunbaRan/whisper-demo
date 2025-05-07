@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseAgent(ABC):
-    def __init__(self, model_name: str = "Gemini/Gemini-2.0-Flash-thinking"):
+    def __init__(self, model_name: str = "Gemini/gemini-2.5-flash"):
         """初始化Agent
 
         Args:
