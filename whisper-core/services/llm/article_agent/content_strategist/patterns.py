@@ -6,7 +6,7 @@ from services.llm.agent.base_agent import BaseAgent
 class PatternsAgent(BaseAgent):
     """内容创作模式Agent"""
 
-    PROMPT_TEMPLATE = open("Patterns.md", "r", encoding="utf-8").read()
+    PROMPT_TEMPLATE = open("services/llm/article_agent/content_strategist/Patterns.md", "r", encoding="utf-8").read()
 
     async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[
         Tuple[str, str], None]:
@@ -24,9 +24,12 @@ class PatternsAgent(BaseAgent):
         pass
 
     async def build_messages(self) -> List[Dict[str, str]]:
+        analysis_results_collection = self.context["analysis_results_collection"]
+        # 拼接分析结果
+        analysis_results = "\n".join([f"第{x + 1}篇分析结果：\n{item}" for x, item in enumerate(analysis_results_collection)])
         prompt = await self.build_prompt(
             self.PROMPT_TEMPLATE,
-            content=self.context["content"]
+            analysis_results_collection=analysis_results
         )
         return [{'role': 'user', 'content': prompt}]
 

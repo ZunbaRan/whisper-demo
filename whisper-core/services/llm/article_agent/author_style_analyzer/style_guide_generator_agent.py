@@ -47,21 +47,21 @@ class StyleGuideGenerator(BaseAgent):
         for analysis in analyses:
             for tone in analysis.get("tone_and_voice", []):
                 tone_counts[tone] = tone_counts.get(tone, 0) + 1
-        stats["common_tones"] = sorted(tone_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        stats["common_tones"] = sorted(tone_counts.items(), key=lambda x: x[1], reverse=True)
 
         # 收集常见的修辞手法
         device_counts = {}
         for analysis in analyses:
             for device in analysis.get("rhetorical_devices", []):
                 device_counts[device] = device_counts.get(device, 0) + 1
-        stats["common_devices"] = sorted(device_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        stats["common_devices"] = sorted(device_counts.items(), key=lambda x: x[1], reverse=True)
 
         # 收集词汇模式
         vocab_counts = {}
         for analysis in analyses:
             for word in analysis.get("vocabulary", []):
                 vocab_counts[word] = vocab_counts.get(word, 0) + 1
-        stats["vocabulary_patterns"] = sorted(vocab_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+        stats["vocabulary_patterns"] = sorted(vocab_counts.items(), key=lambda x: x[1], reverse=True)
 
         # 收集结构习惯
         structure_counts = {}
@@ -69,14 +69,14 @@ class StyleGuideGenerator(BaseAgent):
             structure = analysis.get("paragraphing_and_flow", "")
             if structure:
                 structure_counts[structure] = structure_counts.get(structure, 0) + 1
-        stats["structure_habits"] = sorted(structure_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+        stats["structure_habits"] = sorted(structure_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
         # 收集开头/结尾习惯
         pattern_counts = {}
         for analysis in analyses:
             for pattern in analysis.get("opening_closing_patterns", []):
                 pattern_counts[pattern] = pattern_counts.get(pattern, 0) + 1
-        stats["opening_closing_patterns"] = sorted(pattern_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+        stats["opening_closing_patterns"] = sorted(pattern_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
         # 收集段落与流畅性
         flow_counts = {}
@@ -84,7 +84,7 @@ class StyleGuideGenerator(BaseAgent):
             flow = analysis.get("paragraphing_and_flow", "")
             if flow:
                 flow_counts[flow] = flow_counts.get(flow, 0) + 1
-        stats["paragraphing_and_fLow"] = sorted(flow_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+        stats["paragraphing_and_fLow"] = sorted(flow_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
         return stats
 

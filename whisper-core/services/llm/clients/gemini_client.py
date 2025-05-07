@@ -19,13 +19,13 @@ class GeminiClient(BaseClient):
     """
 
     def __init__(
-        self,
-        api_key: str,
-        api_url: str,
-        api_request_address: str,
-        timeout: Optional[int] = None,
-        proxy: str = None,
-        reasoner: bool = False,
+            self,
+            api_key: str,
+            api_url: str,
+            api_request_address: str,
+            timeout: Optional[int] = None,
+            proxy: str = None,
+            reasoner: bool = False,
     ):
         """初始化 Gemini 客户端
 
@@ -36,10 +36,10 @@ class GeminiClient(BaseClient):
             proxy: 代理服务器地址
         """
         super().__init__(api_key, api_url, api_request_address, timeout, proxy=proxy, reasoner=reasoner)
-        
+
         # 初始化 Google GenAI 客户端
         self.client = genai.Client(api_key=api_key)
-        
+
         # 如果设置了代理，应用代理补丁
         if self.proxy:
             logger.info(f"为 Gemini 客户端应用代理补丁: {self.proxy}")
@@ -107,7 +107,7 @@ class GeminiClient(BaseClient):
         return messages
 
     async def chat(
-        self, messages: List[Dict[str, str]], model: str
+            self, messages: List[Dict[str, str]], model: str
     ) -> Dict[str, Any]:
         """非流式对话
 
@@ -124,14 +124,14 @@ class GeminiClient(BaseClient):
         try:
             # 构建提示
             prompt = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
-            
+
             # 调用 Gemini API
             response = self.client.models.generate_content(
                 model=model,
                 contents=prompt,
                 stream=False
             )
-            
+
             # 转换为 OpenAI 兼容格式
             return {
                 "choices": [{
@@ -148,11 +148,11 @@ class GeminiClient(BaseClient):
             raise Exception(error_msg)
 
     async def stream_chat(
-        self,
-        messages: List[Dict[str, str]],
-        model: str,
-        is_origin_reasoning: bool = True,
-        config: Optional[Any] = None
+            self,
+            messages: List[Dict[str, str]],
+            model: str,
+            is_origin_reasoning: bool = True,
+            config: Optional[Any] = None
     ) -> AsyncGenerator[tuple[str, str], None]:
         """流式对话
 
@@ -169,8 +169,8 @@ class GeminiClient(BaseClient):
         """
         if config is None:
             config = types.GenerateContentConfig(
-            temperature=0.7
-        )
+                temperature=0.7
+            )
         # else:
         #     # 在config的属性中加入temperature
         #     config.temperature = 0.7
@@ -179,18 +179,17 @@ class GeminiClient(BaseClient):
             #  提取messages中的第一个key为system的值
             system_prompt = [msg for msg in messages if msg['role'] == 'system']
             if system_prompt:
-                 config.system_instruction = system_prompt[0]['content']
+                config.system_instruction = system_prompt[0]['content']
 
             # 提取messages中的key为user的值
             user_content = [msg for msg in messages if msg['role'] == 'user']
             if user_content:
                 user_content = user_content[-1]['content']
 
-            
             # 调用 Gemini API 进行流式响应
             response = self.client.models.generate_content_stream(
                 model=model,
-                config = config,
+                config=config,
                 contents=user_content
             )
 
@@ -203,13 +202,15 @@ class GeminiClient(BaseClient):
                 # if chunk.candidates[0].content.parts:
                 #     for part in chunk.candidates[0].content.parts:
                 #         yield "parts", part.text
-                search_entry_point = chunk.candidates[0].grounding_metadata.search_entry_point
-                # 如果 search_entry_point 包含 rendered_content 字段
-                if search_entry_point and hasattr(search_entry_point, 'rendered_content'):
-                    print("===========" + chunk.candidates[0].grounding_metadata.search_entry_point.rendered_content)
+                if (hasattr(chunk.candidates[0], 'grounding_metadata')
+                        and hasattr(chunk.candidates[0].grounding_metadata, 'search_entry_point')):
+                    search_entry_point = chunk.candidates[0].grounding_metadata.search_entry_point
+                    # 如果 search_entry_point 包含 rendered_content 字段
+                    if search_entry_point and hasattr(search_entry_point, 'rendered_content'):
+                        print("===========" + chunk.candidates[0].grounding_metadata.search_entry_point.rendered_content)
 
 
         except Exception as e:
             error_msg = f"流式对话失败: {str(e)}"
             logger.error(error_msg)
-            raise Exception(error_msg) 
+            raise Exception(error_msg)
