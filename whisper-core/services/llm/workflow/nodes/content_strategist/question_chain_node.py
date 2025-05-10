@@ -25,7 +25,7 @@ class Question_Chain_Node(Node):
         async for result in agent.call(content=article["content"]):
             pass
 
-        return agent.response_stream, agent.context["format_res"]
+        return agent.response_stream, agent.format_res
 
     async def call(self) -> AsyncGenerator[Tuple[str, str], None]:
         """分析每篇文章的主题"""

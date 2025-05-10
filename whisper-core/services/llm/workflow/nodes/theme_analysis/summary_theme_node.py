@@ -31,7 +31,7 @@ class SummaryThemeNode(Node):
     async def process_output(self, results: List[Tuple[str, str]]) -> None:
         """处理输出数据"""
 
-        format_res = self.agent.context["format_res"]
+        format_res = self.agent.format_res
 
         self.context["summary_result"] = format_res
 

@@ -14,21 +14,10 @@ class ZhipuWebSearchAgent(BaseAgent):
         self.search_engine = search_engine
         self.PROMPT_TEMPLATE = None
 
-    async def pre_process(self) -> None:
-        pass
-
     async def build_messages(self) -> List[Dict[str, str]]:
         pass
 
-    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[
-        Tuple[str, str], None]:
-        pass
-
-    async def post_process(self) -> None:
-        """后处理"""
-        pass
-
-    async def parse_response(self, response: str) -> Union[dict, list, str, int, float, bool, None]:
+    async def parse_response(self, response: str) -> Union[dict, list, str, int, float, bool, None, Any]:
         pass
 
     async def call(
@@ -52,4 +41,9 @@ class ZhipuWebSearchAgent(BaseAgent):
         # 获取到的client是ZhipuClient
         res = await client.web_search_api(search_engine=self.search_engine,
                                           search_query=content)
-        yield "assistant", res
+        self.format_res = res
+        
+        # print(res, end="", flush=True)
+        
+        yield "content", res
+

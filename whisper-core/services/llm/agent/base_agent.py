@@ -17,6 +17,7 @@ class BaseAgent(ABC):
         self.model_name = model_name
         self.context: Dict[str, Any] = {}  # 用于存储上下文信息
         self.response_stream: List[Tuple[str, str]] = []  # 用于存储流式响应
+        self.format_res: Any = None  # 用于存储最终结果
 
     async def call(
             self,
@@ -71,7 +72,7 @@ class BaseAgent(ABC):
     #     logger.error(e.__traceback__)
     #     yield "error", error_msg
 
-    @abstractmethod
+    # @abstractmethod
     async def pre_process(self) -> None:
         """前置处理，在调用LLM之前的准备工作"""
         pass
@@ -118,7 +119,7 @@ class BaseAgent(ABC):
         #     logger.error(error_msg)
         #     yield "error", error_msg
 
-    @abstractmethod
+    # @abstractmethod
     async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
         """处理LLM的响应
 
@@ -128,13 +129,13 @@ class BaseAgent(ABC):
         async for role, content in response:
             yield role, content
 
-    @abstractmethod
+    # @abstractmethod
     async def post_process(self) -> None:
         """后置处理，在所有处理完成后的清理工作"""
         content_list = [result[1] for result in self.response_stream]
         content_str = "".join(content_list)
         format_res = await self.parse_response(content_str)
-        self.context["format_res"] = format_res
+        self.format_res = format_res
 
     @abstractmethod
     async def parse_response(self, response: str) ->  Union[dict, list, str, int, float, bool, None]:

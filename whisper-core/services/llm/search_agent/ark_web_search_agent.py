@@ -13,7 +13,6 @@ class ArkWebSearchAgent(BaseAgent):
         self.PROMPT_TEMPLATE = None
         self.model_name = "Volcengine/search-bot"
         self.context = {}
-        self.result = {}
 
     async def pre_process(self) -> None:
         pass
@@ -27,20 +26,6 @@ class ArkWebSearchAgent(BaseAgent):
             }
         ]
         return messages
-
-    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[
-        Tuple[str, str], None]:
-        # 累加 response的结果
-        summary_content = ""
-        async for role, content in response:
-            self.response_stream.append((role, content))  # 保存响应
-            summary_content += content
-            yield role, content
-
-        self.context["summary_content"] = summary_content
-
-    async def post_process(self) -> None:
-        pass
 
     async def parse_response(self, response: str) -> Union[dict, list, str, int, float, bool, None]:
         pass
@@ -68,13 +53,17 @@ class ArkWebSearchAgent(BaseAgent):
         messages = await self.build_messages()
         generator, references = await client.stream_bot_chat(messages, model=model_config.model_id)
 
+        summary_content = ""
         # 使用生成器获取流式响应, 并进行收集处理
         async for role, content in self.process_response(generator):
+            # print(content, end="", flush=True)
+            summary_content += content
             yield role, content
 
         # 在生成器运行完毕后，references 列表才会包含所有数据
+        reference_list = []
+
         if references:
-            reference_list = []
             # 打印所有的 references
             for ref in references:
                  reference_list.append(References(
@@ -88,8 +77,8 @@ class ArkWebSearchAgent(BaseAgent):
 
         search_res = SearchRes(
             query=self.context["query"],
-            summary_content=self.context["summary_content"],
-            search_references=self.context["references"]
+            summary_content=summary_content,
+            search_references=reference_list
         )
 
-        self.result = search_res
+        self.format_res = search_res

@@ -20,6 +20,9 @@ class FormatJson:
             Any: 解析后的Python对象，可能是dict、list等，解析失败时返回default值
         """
         try:
+            if "[DONE]" in response:
+                response = response.replace("[DONE]", "")
+
             if "```json" in response:
                 start = response.find("```json") + 7
                 end = response.find("```", start)

@@ -207,7 +207,11 @@ class GeminiClient(BaseClient):
                     search_entry_point = chunk.candidates[0].grounding_metadata.search_entry_point
                     # 如果 search_entry_point 包含 rendered_content 字段
                     if search_entry_point and hasattr(search_entry_point, 'rendered_content'):
-                        print("===========" + chunk.candidates[0].grounding_metadata.search_entry_point.rendered_content)
+                        # print("rendered_content start===========\n")
+                        # print(chunk.candidates[0].grounding_metadata.search_entry_point.rendered_content)
+                        # print("rendered_content end===========\n")
+                        pass
+
 
 
         except Exception as e:

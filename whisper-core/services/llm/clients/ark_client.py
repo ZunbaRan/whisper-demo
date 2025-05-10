@@ -162,13 +162,15 @@ class ArkClient(BaseClient):
             response = await self.client.bot_chat.completions.create(**params)
 
             references = []
-            
+
             async def generate_content():
+
                 async for chunk in response:
                     if chunk.references:
                         references.extend(chunk.references)
-                    if not chunk.choices:
-                        continue
+                    if not chunk.choices and chunk.choices[0]["message"]["content"]:
+                        yield "summary", chunk.choices[0]["message"]["content"]
+
                     yield "content", chunk.choices[0].delta.content
 
             return generate_content(), references

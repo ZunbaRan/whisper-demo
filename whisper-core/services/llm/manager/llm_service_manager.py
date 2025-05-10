@@ -122,21 +122,17 @@ class LLMServiceManager:
             return None
 
     def get_client(self, model_name: str) -> Optional[Tuple[BaseClient, ModelConfig]]:
-        """获取或创建客户端实例
+        """获取客户端实例。此版本不再进行缓存，每次调用都会尝试创建一个新的客户端实例，以支持并发使用。
 
         Args:
             model_name: 模型名称
 
         Returns:
-            Optional[Tuple[BaseClient, ModelConfig]]: (客户端实例, 配置) 元组，如果模型不存在则返回 None
+            Optional[Tuple[BaseClient, ModelConfig]]: (客户端实例, 配置) 元组，如果模型不存在或创建失败则返回 None
         """
-        if model_name not in self.clients:
-            result = self._get_client(model_name)
-            if result:
-                self.clients[model_name] = result
-            else:
-                return None
-        return self.clients[model_name]
+        # 直接调用 _get_client 来创建并返回新的客户端实例。
+        # 这移除了原有的缓存机制。
+        return self._get_client(model_name)
 
     def get_all_clients(self) -> Dict[str, Tuple[BaseClient, ModelConfig]]:
         """获取所有已初始化的客户端
