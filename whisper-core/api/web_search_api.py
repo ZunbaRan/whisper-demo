@@ -8,6 +8,8 @@ from starlette.responses import StreamingResponse
 from services.deep_research.deep_research import DeepResearch
 from services.deep_research.markdown_report import MarkdownReport
 from services.deep_research.models import ChatRequest, Message
+from services.deeper_research.agent.information_query import search_information
+from services.deeper_research.high_topic_chain_workflow import HighTopicChainWorkflow
 from services.llm.utils import search_tool
 from services.deeper_research.deep_research_workflow import DeepResearchWorkflow
 
@@ -16,6 +18,26 @@ logger = logging.getLogger(__name__)
 @router.post("/web-research")
 async def web_search_api(query:str) -> str:
    return await search_tool.web_search(query)
+
+
+@router.get("/high_topic_chain_workflow")
+async def high_topic_chain_workflow(content: str) -> str:
+    workflow = HighTopicChainWorkflow()
+
+    res = ""
+    async for result in workflow.astream_execute(content):
+        res += result[1]
+
+    return res
+
+@router.get("/search_information")
+async def search_information_api(content: str) -> str:
+
+    res = await search_information.search_information(content)
+
+    return res
+
+
 
 
 @router.post("/deeper_research")

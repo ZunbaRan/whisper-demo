@@ -13,7 +13,20 @@ class GeminiWebSearchAgent(BaseAgent):
 
     def __init__(self):
         super().__init__(model_name="Gemini/gemini-2.5-flash")
-        self.PROMPT_TEMPLATE = None
+        self.PROMPT_TEMPLATE = """
+            ## role: 你是一个专业的搜索助手。请根据用户的查询，使用Google搜索获取相关信息，并以清晰、准确的方式呈现搜索结果。
+                ## 请搜索以下内容：{query}
+                ## 输出格式：你需要以json的格式返回所有查询的结果
+                ## 注意!!!:只需要输出 json 格式的响应，不需要其他任何内容和标签
+                每个结果包含以下字段：
+                - query: 搜索的原问题
+                - summary_content: 根据搜索结果的内容，总结出的主要信息
+                - search_references: 字符串数组，每个元素包含以下字段
+                    - site: 站点名/来源媒体
+                    - url: 搜索结果引用的网址
+                    - content: 在该网站中找到的匹配搜索结果的内容
+                    - title: 该网站中找到的匹配搜索结果的标题
+        """
 
     async def pre_process(self) -> None:
         google_search_tool = Tool(
@@ -33,24 +46,8 @@ class GeminiWebSearchAgent(BaseAgent):
         query = self.context.get("query")
         messages = [
             {
-                "role": "system",
-                "content": """
-                ## role: 你是一个专业的搜索助手。请根据用户的查询，使用Google搜索获取相关信息，并以清晰、准确的方式呈现搜索结果。
-                ## 输出格式：你需要以json的格式返回所有查询的结果
-                ## 注意!!!:只需要输出 json 格式的响应，不需要其他任何内容和标签，尤其是类似于 ```json 这种markdown标签
-                每个结果包含以下字段：
-                - query: 搜索的原问题
-                - summary_content: 根据搜索结果的内容，总结出的主要信息
-                - search_references: 字符串数组，包含搜索结果的URL
-                    - site: 站点名/来源媒体
-                    - url: 搜索结果引用的网址
-                    - content: 在该网站中找到的匹配搜索结果的内容
-                    - title: 该网站中找到的匹配搜索结果的标题
-                """
-            },
-            {
                 "role": "user",
-                "content": f"请搜索以下内容并返回相关信息：{query}"
+                "content": self.PROMPT_TEMPLATE.format(query=query)
             }
         ]
         return messages
@@ -79,7 +76,11 @@ class GeminiWebSearchAgent(BaseAgent):
         """
         try:
             # 尝试将响应解析为 JSON SearchRes
-            res: Dict = await FormatJson.llm_parse(response)
+            res: Dict | List = await FormatJson.llm_parse(response)
+
+            if isinstance(res, list):
+                res = res[0]
+
             search_res = SearchRes(**res)
             return search_res
         except json.JSONDecodeError:

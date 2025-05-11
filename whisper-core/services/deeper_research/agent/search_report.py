@@ -12,7 +12,7 @@ class SearchReportAgent(BaseAgent):
     PROMPT_TEMPLATE = open("services/deeper_research/agent/search_report_prompt.md", "r", encoding="utf-8").read()
 
     async def pre_process(self) -> None:
-        sub_queries:list = self.context["sub_queries"]
+        sub_queries: list = self.context["sub_queries"]
         # 测试只选取前三个
         sub_queries = sub_queries[:3]
 

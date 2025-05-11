@@ -22,7 +22,7 @@ class PerAnalysisReportNode(Node):
         它迭代地查询事件，直到满足停止条件。
         """
         # 初始化变量
-        all_found_concrete_events: List[str] = []
+        all_found_concrete_events: List[Dict] = []
         further_sub_queries: List[str] = []
         max_iterations = 5
         current_iteration = 0
@@ -84,14 +84,19 @@ class PerAnalysisReportNode(Node):
 
         # 更新输出结果
         self.outputs = {
-            "all_found_concrete_events": all_found_concrete_events,
+            "all_found_concrete_events": all_found_concrete_events
         }
 
-    def _update_events_and_queries(self, all_found_concrete_events: List[str],
-                                   further_sub_queries: List[str]):
+    def _update_events_and_queries(self, all_found_concrete_events: List[Dict],
+                                   further_sub_queries: List[str]) -> List[str] :
         if self.agent.format_res:
             if isinstance(self.agent.format_res.get("found_concrete_events"), list):
-                all_found_concrete_events.append(self.agent.format_res["found_concrete_events"])
+                # self.agent.format_res["found_concrete_events"] 数组中的元素并去到 all_found_concrete_events 中
+                for event in self.agent.format_res["found_concrete_events"]:
+                    if event not in all_found_concrete_events:
+                        all_found_concrete_events.append(event)
+                # all_found_concrete_events.append(self.agent.format_res["found_concrete_events"])
             if isinstance(self.agent.format_res.get("further_sub_queries"), list):
                 further_sub_queries = self.agent.format_res["further_sub_queries"]
+
         return further_sub_queries

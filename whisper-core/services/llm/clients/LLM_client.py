@@ -42,7 +42,7 @@ class LLM_client:
                 model=model_config.model_id,
                 config=config
         ):
-            # print(content, end='', flush=True)
+            print(content, end='', flush=True)
             yield role, content
 
         # 发送完成标记
