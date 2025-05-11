@@ -46,7 +46,7 @@ class LLM_client:
             yield role, content
 
         # 发送完成标记
-        yield "done", "[DONE]"
+        # yield "done", "[DONE]"
 
         # except Exception as e:
         #     error_msg = f"对话过程中发生错误: {str(e)}"

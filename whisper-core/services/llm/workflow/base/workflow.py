@@ -117,7 +117,6 @@ class Workflow:
             self._update_context(node)
             self._save_context()  # 保存更新后的上下文
 
-        yield "done", ""
         # try:
         #     # 初始化上下文
         #     self.context = initial_inputs.copy()
@@ -197,7 +196,8 @@ class Workflow:
         Returns:
             Dict[str, Any]: 节点输入数据
         """
-        return self.context.copy()
+        node.context = self.context.copy()
+        return node.context
 
     def _update_context(self, node: Node) -> None:
         """更新工作流上下文

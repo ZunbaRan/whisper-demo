@@ -30,3 +30,6 @@ requests~=2.32.3
 google-genai==1.11.0
 volcengine-python-sdk==2.0.1
 zhipuai==2.1.5.20250421
+langchain-core==0.3.59
+langchain==0.3.25
+langchain-community==0.3.23

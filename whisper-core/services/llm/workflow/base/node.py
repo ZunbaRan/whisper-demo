@@ -70,12 +70,10 @@ class Node(ABC):
         """执行节点的主要逻辑"""
         pass
             
-    @abstractmethod
     async def prepare_context(self) -> None:
         """准备上下文"""
         pass
         
-    @abstractmethod
     async def process_output(self, results: List[Tuple[str, str]]) -> None:
         """处理输出结果"""
         pass

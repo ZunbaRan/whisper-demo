@@ -12,7 +12,7 @@ class GeminiWebSearchAgent(BaseAgent):
     """使用 Gemini 进行联网搜索的 Agent"""
 
     def __init__(self):
-        super().__init__(model_name="Gemini/gemini-2.5-pro")
+        super().__init__(model_name="Gemini/gemini-2.5-flash")
         self.PROMPT_TEMPLATE = None
 
     async def pre_process(self) -> None:

@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any
 
 from fastapi import APIRouter, HTTPException, Body
 from starlette.responses import StreamingResponse
@@ -8,19 +8,37 @@ from starlette.responses import StreamingResponse
 from services.deep_research.deep_research import DeepResearch
 from services.deep_research.markdown_report import MarkdownReport
 from services.deep_research.models import ChatRequest, Message
-from services.llm.search_agent.ark_web_search_agent import ArkWebSearchAgent
-from services.llm.search_agent.gemini_web_search_agent import GeminiWebSearchAgent
-from services.llm.search_agent.kimi_web_search_agent import KimiWebSearchAgent
-from services.llm.search_agent.zhipu_web_search_agent import ZhipuWebSearchAgent
 from services.llm.utils import search_tool
+from services.deeper_research.deep_research_workflow import DeepResearchWorkflow
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-@router.post("/gemini-search")
+@router.post("/web-research")
 async def web_search_api(query:str) -> str:
    return await search_tool.web_search(query)
 
-@router.post("/deep_research")
+
+@router.post("/deeper_research")
+async def deep_research(request: Dict[str, Any] = Body(
+            example={
+                "question": "帮我搜索最近一周关于“外部合规 内部变革”相关的现象、案例或深度分析"
+            })) -> str:
+    question = request.get("question")
+
+    if not question:
+        raise HTTPException(status_code=400, detail="缺少研究问题") 
+
+    deep_research_workflow = DeepResearchWorkflow()
+
+    res = ""
+    async for result in deep_research_workflow.astream_execute(question):
+        res += result[1]
+        
+    return res
+    
+    
+
+@router.post("/deep_search")
 async def deep_research(
         request: Dict[str, Any] = Body(
             ...,

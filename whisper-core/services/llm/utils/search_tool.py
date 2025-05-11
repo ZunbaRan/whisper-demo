@@ -115,6 +115,7 @@ async def web_search(query: str) -> str:
 
     os.makedirs(output_dir, exist_ok=True)
 
+    markdown_content_str = ""
     # 将 SearchRes 转换为 Markdown 格式
     if all_search_results and isinstance(all_search_results[0], SearchRes):
         merged_result = all_search_results[0]
@@ -139,10 +140,14 @@ async def web_search(query: str) -> str:
         # 写入 Markdown 文件
         with open(output_file_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(markdown_content))
+
+        # markdown_content 转为 str
+        markdown_content_str = "\n".join(markdown_content)
     else:
         # 如果没有有效结果，创建一个空的 Markdown 文件
         with open(output_file_path, 'w', encoding='utf-8') as f:
             f.write("# 无搜索结果\n")
 
     print(f"\nSearch results saved to: {output_file_path}")
-    return output_file_path
+
+    return markdown_content_str
