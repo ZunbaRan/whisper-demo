@@ -8,7 +8,7 @@ from services.llm.agent.base_agent import BaseAgent
 
 class HighTopicQuestionChain(BaseAgent):
     def __init__(self):
-        super().__init__(model_name="Gemini/gemini-2.5-pro")
+        super().__init__(model_name="Gemini/gemini-2.5-flash")
 
     PROMPT_TEMPLATE = open("services/deeper_research/agent/high_topic_question_chain_prompt.md", "r", encoding="utf-8").read()
 

@@ -1,4 +1,5 @@
 import asyncio
+import re
 from typing import List, Optional, Any # Added Any for agent type hint in helper
 
 from services.deeper_research.agent.information_query.gemini_information_search_agent import \
@@ -74,7 +75,37 @@ async def search_information(query: str) -> str:
     all_search_results = [res for res in results if res is not None]
 
     combined_summary = ''
+
+    combined_result = "<search_results> {search_results_for_query_cuts} </search_results>"
+    combined_link = "<link> {link_for_query_cuts} </link>"
+
+    search_results_for_query_cuts = ''
+    link_for_query_cuts = ''
     if all_search_results:
-        combined_summary = "\n".join(res for res in all_search_results)
+        for res in all_search_results:
+            match_result = re.search(r"<search_results>(.*?)</search_results>", res, re.DOTALL)
+            if match_result:
+                search_results_for_query_cut = match_result.group(1).strip()
+            else:
+                search_results_for_query_cut = res
+
+            # 移除 search_results_for_query_cut 中的所有 <search_results> 和 </search_results> 标签
+            search_results_for_query_cut = re.sub(r'<search_results>|</search_results>', '', search_results_for_query_cut)
+            search_results_for_query_cuts += search_results_for_query_cut + '\n'
+
+            match_link = re.search(r"<link>(.*?)</link>", res, re.DOTALL)
+            if match_link:
+                link_for_query_cut = match_link.group(1).strip()
+            else:
+                link_for_query_cut = res
+
+            # 移除 link_for_query_cut 中的所有 <link> 和 </link> 标签
+            link_for_query_cut = re.sub(r'<link>|</link>', '', link_for_query_cut)
+            link_for_query_cuts += link_for_query_cut + '\n'
+
+        combined_result = combined_result.format(search_results_for_query_cuts=search_results_for_query_cuts)
+        combined_link = combined_link.format(link_for_query_cuts=link_for_query_cuts)
+
+        combined_summary = combined_result + '\n' + combined_link
 
     return combined_summary

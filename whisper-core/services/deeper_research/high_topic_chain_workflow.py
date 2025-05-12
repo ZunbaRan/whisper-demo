@@ -1,6 +1,7 @@
 import logging
 from typing import AsyncGenerator, Tuple, Dict, Any
 
+from services.deeper_research.node.chain_report_node import ChainReportNode
 from services.deeper_research.node.high_topic_question_chain import HighTopicQuestionChainNode
 from services.deeper_research.node.per_analysis_report_node import PerAnalysisReportNode
 from services.deeper_research.node.search_report_node import SearchReportNode
@@ -20,13 +21,16 @@ class HighTopicChainWorkflow:
         # 确保 InitialQuerySubQueriesNode 的构造函数接受 tid 参数，或者调整节点类的 __init__
         # 基于提供的 InitialQuerySubQueriesNode 定义，它接受 tid
         self.high_topic_question_chain = HighTopicQuestionChainNode(tid=workflow_tid)
+        self.chain_report_node = ChainReportNode(tid=workflow_tid)
 
         # 添加节点到工作流
         self.workflow.add_node(self.high_topic_question_chain)
+        self.workflow.add_node(self.chain_report_node)
 
         
         # 设置节点执行顺序 (即使只有一个节点，也最好设置)
-        self.workflow.set_node_order([self.high_topic_question_chain.name])
+        self.workflow.set_node_order([self.high_topic_question_chain.name,
+                                       self.chain_report_node.name])
 
     async def astream_execute(self, question: str, initial_context: Dict[str, Any] = None) -> AsyncGenerator[Tuple[str, str], None]:
         """
