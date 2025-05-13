@@ -1,3 +1,4 @@
+import json
 import uuid
 from typing import AsyncGenerator, Tuple, List
 
@@ -20,8 +21,14 @@ class ChainReportNode(Node):
             print(f"{content}", flush=True)
             yield role, content
 
+        format_res = {}
+        if self.agent.format_res:
+            format_res = self.agent.format_res
+        else:
+            format_res = self.context["high_topic_question_chain"]
+
         self.outputs = {
-            "topic_framework_with_search_results": self.agent.format_res,
+            "topic_framework_with_search_results": json.dumps(format_res, ensure_ascii=False),
             "knowledge_base_topic_summary_content": self.context["knowledge_base_topic_summary_content"],
             "knowledge_base_heuristic_patterns_content": self.context["knowledge_base_heuristic_patterns_content"]
         }
