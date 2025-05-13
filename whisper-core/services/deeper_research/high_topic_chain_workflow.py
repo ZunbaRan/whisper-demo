@@ -2,6 +2,7 @@ import logging
 from typing import AsyncGenerator, Tuple, Dict, Any
 
 from services.deeper_research.node.chain_report_node import ChainReportNode
+from services.deeper_research.node.content_creator_node import ContentCreatorNode
 from services.deeper_research.node.high_topic_question_chain import HighTopicQuestionChainNode
 from services.deeper_research.node.per_analysis_report_node import PerAnalysisReportNode
 from services.deeper_research.node.search_report_node import SearchReportNode
@@ -10,10 +11,11 @@ from services.deeper_research.node.initial_query_sub_queries_node import Initial
 
 logger = logging.getLogger(__name__)
 
+
 class HighTopicChainWorkflow:
     def __init__(self):
         self.workflow = Workflow("high_topic_chain_workflow")
-        
+
         # 获取工作流的唯一ID，用于节点tid
         workflow_tid = self.workflow.get_tid()
 
@@ -22,17 +24,20 @@ class HighTopicChainWorkflow:
         # 基于提供的 InitialQuerySubQueriesNode 定义，它接受 tid
         self.high_topic_question_chain = HighTopicQuestionChainNode(tid=workflow_tid)
         self.chain_report_node = ChainReportNode(tid=workflow_tid)
+        self.content_creator_node = ContentCreatorNode(tid=workflow_tid)
 
         # 添加节点到工作流
         self.workflow.add_node(self.high_topic_question_chain)
         self.workflow.add_node(self.chain_report_node)
+        self.workflow.add_node(self.content_creator_node)
 
-        
         # 设置节点执行顺序 (即使只有一个节点，也最好设置)
         self.workflow.set_node_order([self.high_topic_question_chain.name,
-                                       self.chain_report_node.name])
+                                      self.chain_report_node.name,
+                                      self.content_creator_node.name])
 
-    async def astream_execute(self, question: str, initial_context: Dict[str, Any] = None) -> AsyncGenerator[Tuple[str, str], None]:
+    async def astream_execute(self, question: str, initial_context: Dict[str, Any] = None) -> AsyncGenerator[
+        Tuple[str, str], None]:
         """
         执行深度研究工作流并流式返回结果。
         每个节点的结果 (role, content) 将被流式输出。

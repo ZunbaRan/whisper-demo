@@ -68,14 +68,14 @@ async def web_search(query: str) -> str:
     """
     gemini_web_search_agent = GeminiWebSearchAgent()
     kimi_web_search_agent = KimiWebSearchAgent()
-    ark_web_search_agent = ArkWebSearchAgent()
-    zhipuai_agent = ZhipuWebSearchAgent(search_engine="Search-Std")
+    # ark_web_search_agent = ArkWebSearchAgent()
+    # zhipuai_agent = ZhipuWebSearchAgent(search_engine="Search-Std")
 
     tasks = [
         _execute_search_agent(gemini_web_search_agent, "Gemini", query),
         _execute_search_agent(kimi_web_search_agent, "Kimi", query),
-        _execute_search_agent(zhipuai_agent, "Zhipu", query),
-        _execute_search_agent(ark_web_search_agent, "Ark", query)
+        # _execute_search_agent(zhipuai_agent, "Zhipu", query),
+        # _execute_search_agent(ark_web_search_agent, "Ark", query)
     ]
 
     # Run all search tasks concurrently

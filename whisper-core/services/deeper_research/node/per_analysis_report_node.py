@@ -36,7 +36,7 @@ class PerAnalysisReportNode(Node):
         further_sub_queries = self._update_events_and_queries(all_found_concrete_events, further_sub_queries)
 
         # 循环直到找到足够的具体事件或没有更多的子查询或达到最大迭代次数
-        while len(all_found_concrete_events) < 10 and further_sub_queries and current_iteration < max_iterations:
+        while len(all_found_concrete_events) < 20 and further_sub_queries and current_iteration < max_iterations:
             # 初始化搜索代理
             search_agent = SearchReportAgent()
 
@@ -45,8 +45,10 @@ class PerAnalysisReportNode(Node):
             print(
                 f"\n--- Iteration {current_iteration} --- Events found: {len(all_found_concrete_events)}, Further sub-queries available: {len(further_sub_queries)} ---")
 
-            # 处理子查询
-            sub_queries_to_process = further_sub_queries[:3]
+            # 子查询随机取5个
+            import random
+            random.shuffle(further_sub_queries)
+            sub_queries_to_process = further_sub_queries[:5]
 
             # 检查是否有子查询需要处理
             if not sub_queries_to_process:

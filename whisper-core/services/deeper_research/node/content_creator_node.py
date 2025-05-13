@@ -4,14 +4,15 @@ from typing import AsyncGenerator, Tuple, List
 from google.genai.types import GenerateContentConfig
 
 from services.deeper_research.agent.chain_report_agent import ChainReport
+from services.deeper_research.agent.content_creator.content_creator_agent import ContentCreatorAgent
 from services.llm.workflow.base.node import Node
 from services.llm.workflow.base.output_manager import OutputManager
 
 
-class ChainReportNode(Node):
+class ContentCreatorNode(Node):
 
-    def __init__(self, tid: str = uuid.uuid4(), name: str = "chain_report_node"):
-        super().__init__(name, ChainReport(), tid)
+    def __init__(self, tid: str = uuid.uuid4(), name: str = "content_creator_node"):
+        super().__init__(name, ContentCreatorAgent(), tid)
         self.output_manager = OutputManager("public/output")
 
 
@@ -21,9 +22,7 @@ class ChainReportNode(Node):
             yield role, content
 
         self.outputs = {
-            "topic_framework_with_search_results": self.agent.format_res,
-            "knowledge_base_topic_summary_content": self.context["knowledge_base_topic_summary_content"],
-            "knowledge_base_heuristic_patterns_content": self.context["knowledge_base_heuristic_patterns_content"]
+            "content_create": self.agent.format_res
         }
 
     # async def process_output(self, results: List[Tuple[str, str]]) -> None:

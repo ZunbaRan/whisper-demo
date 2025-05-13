@@ -13,7 +13,9 @@ class SearchReportAgent(BaseAgent):
 
     async def pre_process(self) -> None:
         sub_queries: list = self.context["sub_queries"]
-        # 测试只选取前三个
+        # 随机选择3个sub_query，避免超出token限制
+        import random
+        random.shuffle(sub_queries)
         sub_queries = sub_queries[:3]
 
         # Create a list of tasks for each sub_query search

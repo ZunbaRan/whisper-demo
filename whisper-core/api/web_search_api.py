@@ -28,14 +28,23 @@ async def high_topic_chain_workflow(content: str) -> str:
     async for result in workflow.astream_execute(content):
         res += result[1]
 
+    # 打印带边框的内容
+    border = "-" * 50
+    print(f"\n{border}")
+    for line in res.split('\n'):
+        processed_line = line.strip()
+        if processed_line:  # 过滤空行
+            print(f"| {processed_line.ljust(48)} |")  # 固定宽度左对齐
+    print(f"{border}\n")
+
     return res
 
-@router.get("/search_information")
-async def search_information_api(content: str) -> str:
-
-    res = await search_information.search_information(content)
-
-    return res
+# @router.get("/search_information")
+# async def search_information_api(content: str) -> str:
+#
+#     res = await search_information.search_information(content)
+#
+#     return res
 
 
 
@@ -55,6 +64,15 @@ async def deep_research(request: Dict[str, Any] = Body(
     res = ""
     async for result in deep_research_workflow.astream_execute(question):
         res += result[1]
+
+    # 打印带边框的内容
+    border = "-" * 50
+    print(f"\n{border}")
+    for line in res.split('\n'):
+        processed_line = line.strip()
+        if processed_line:  # 过滤空行
+            print(f"| {processed_line.ljust(48)} |")  # 固定宽度左对齐
+    print(f"{border}\n")
         
     return res
     
