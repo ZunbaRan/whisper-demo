@@ -16,7 +16,7 @@ class ContentCreatorAgent(BaseAgent):
 
 
     async def build_messages(self) -> List[Dict[str, str]]:
-        file_path = os.path.join("services/article_agent/style/bi_sytle2.md")
+        file_path = os.path.join("services/llm/article_agent/style/bi_sytle2.md")
         if os.path.exists(file_path):
             with open(file_path, "r", encoding="utf-8") as f:
                 style_guide = f.read()

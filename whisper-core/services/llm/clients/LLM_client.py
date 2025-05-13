@@ -4,7 +4,7 @@ from typing import List, Dict, AsyncGenerator, Optional, Any
 
 from services.llm.utils.logger import logger
 from services.llm.manager.llm_service_manager import llm_service_manager
-
+from services.llm.utils.logger import llm_client_logger  # 新增：导入专用logger
 
 class LLM_client:
     """LLM服务主类"""
@@ -42,7 +42,7 @@ class LLM_client:
                 model=model_config.model_id,
                 config=config
         ):
-            print(content, end='', flush=True)
+            llm_client_logger.info(content)
             yield role, content
 
         # 发送完成标记

@@ -1,4 +1,7 @@
+import json
+import os
 import uuid
+from datetime import datetime
 from re import search
 from typing import AsyncGenerator, Tuple, List, Dict, Any
 
@@ -23,6 +26,7 @@ class PerAnalysisReportNode(Node):
         """
         # 初始化变量
         all_found_concrete_events: List[Dict] = []
+        all_further_sub_queries: List[str] = []
         further_sub_queries: List[str] = []
         max_iterations = 5
         current_iteration = 0
@@ -84,12 +88,30 @@ class PerAnalysisReportNode(Node):
         # 打印循环结束后的总事件数量
         print(f"\nLoop finished. Total concrete events found: {len(all_found_concrete_events)}")
 
+        # 把 all_found_concrete_events 和 all_further_sub_queries 保存到 public/output/event/{time} 文件夹中
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_dir = os.path.join("public/output/event", timestamp)
+        os.makedirs(output_dir, exist_ok=True)
+
+        events_file_path = os.path.join(output_dir, "all_found_concrete_events.json")
+        with open(events_file_path, "w", encoding="utf-8") as f:
+            json.dump(all_found_concrete_events, f, ensure_ascii=False, indent=4)
+
+        queries_file_path = os.path.join(output_dir, "all_further_sub_queries.json")
+        with open(queries_file_path, "w", encoding="utf-8") as f:
+            json.dump(all_further_sub_queries, f, ensure_ascii=False, indent=4)
+
+        print(f"Events saved to: {events_file_path}")
+        print(f"Sub queries saved to: {queries_file_path}")
+
         # 更新输出结果
         self.outputs = {
-            "all_found_concrete_events": all_found_concrete_events
+            "all_found_concrete_events": all_found_concrete_events,
+            "all_further_sub_queries": all_further_sub_queries,
         }
 
     def _update_events_and_queries(self, all_found_concrete_events: List[Dict],
+                                   all_further_sub_queries: List[str],
                                    further_sub_queries: List[str]) -> List[str] :
         if self.agent.format_res:
             if isinstance(self.agent.format_res.get("found_concrete_events"), list):
@@ -97,8 +119,12 @@ class PerAnalysisReportNode(Node):
                 for event in self.agent.format_res["found_concrete_events"]:
                     if event not in all_found_concrete_events:
                         all_found_concrete_events.append(event)
-                # all_found_concrete_events.append(self.agent.format_res["found_concrete_events"])
+
             if isinstance(self.agent.format_res.get("further_sub_queries"), list):
+                for sub_query in self.agent.format_res["further_sub_queries"]:
+                    if sub_query not in all_further_sub_queries:
+                        all_further_sub_queries.append(sub_query)
+
                 further_sub_queries = self.agent.format_res["further_sub_queries"]
 
         return further_sub_queries

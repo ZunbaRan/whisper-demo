@@ -115,7 +115,7 @@ class ArticleCreateFlow:
         Yields:
             str: 处理过程中的流式输出
         """
-        file_path = os.path.join("services/article_agent/style/bi_sytle2.md")
+        file_path = os.path.join("services/llm/article_agent/style/bi_sytle2.md")
         if os.path.exists(file_path):
             with open(file_path, "r", encoding="utf-8") as f:
                 style_guide = f.read()

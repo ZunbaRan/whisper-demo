@@ -50,15 +50,7 @@ async def high_topic_chain_workflow(content: str) -> str:
 
 
 @router.post("/deeper_research")
-async def deep_research(request: Dict[str, Any] = Body(
-            example={
-                "question": "帮我搜索最近一周关于“外部合规 内部变革”相关的现象、案例或深度分析"
-            })) -> str:
-    question = request.get("question")
-
-    if not question:
-        raise HTTPException(status_code=400, detail="缺少研究问题") 
-
+async def deep_research(question: str) -> str:
     deep_research_workflow = DeepResearchWorkflow()
 
     res = ""
