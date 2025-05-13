@@ -72,5 +72,5 @@ class ChainReport(BaseAgent):
         res = self.context["high_topic_question_chain"]
         yield "content", json.dumps(res, ensure_ascii=False)
 
-        await super().post_process()
+        self.format_res = res
 
