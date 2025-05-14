@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import AsyncGenerator, Tuple, Dict, Any
 
 from services.deeper_research.node.per_analysis_report_node import PerAnalysisReportNode
@@ -10,10 +11,11 @@ logger = logging.getLogger(__name__)
 
 class DeepResearchWorkflow:
     def __init__(self):
-        self.workflow = Workflow("deep_research_workflow")
+        tid = str(uuid.uuid4())
+        self.workflow = Workflow("deep_research_workflow", tid=tid)
         
         # 获取工作流的唯一ID，用于节点tid
-        workflow_tid = self.workflow.get_tid()
+        workflow_tid = tid
 
         # 创建节点
         # 确保 InitialQuerySubQueriesNode 的构造函数接受 tid 参数，或者调整节点类的 __init__

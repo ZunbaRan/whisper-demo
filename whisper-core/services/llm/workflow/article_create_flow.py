@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 from typing import AsyncGenerator, Tuple, Optional
 import logging
 from pathlib import Path
@@ -21,13 +22,14 @@ logger = logging.getLogger(__name__)
 class ArticleCreateFlow:
     """文章分析工作流"""
 
-    def __init__(self, author_name: str, tid: Optional[str] = None):
+    def __init__(self, author_name: str):
         """初始化文章创建工作流
         
         Args:
             author_name: 作者名称
             tid: 任务ID，如果为None则自动生成
         """
+        tid = str(uuid.uuid4())
         self.author_name = author_name
         self.workflow = Workflow("article_create_flow", tid=tid)
         self.context = self.workflow.context
@@ -37,21 +39,21 @@ class ArticleCreateFlow:
         print(f"tid: {self.workflow.get_tid()}")
 
         # 主题分析节点
-        self.theme_analysis_node = ThemeAnalysisNode()
+        self.theme_analysis_node = ThemeAnalysisNode(tid=tid)
         # 元素提取节点
-        self.elements_extraction_node = ElementsExtractionNode()
+        self.elements_extraction_node = ElementsExtractionNode(tid=tid)
         # 结构分析节点
-        self.structure_analysis_node = StructureAnalysisNode()
+        self.structure_analysis_node = StructureAnalysisNode(tid=tid)
         # 角度钩选策略节点
-        self.angle_hook_strategist_node = AngleHookStrategistNode()
+        self.angle_hook_strategist_node = AngleHookStrategistNode(tid=tid)
         # 结构化草稿节点
-        self.structured_draft_node = StructuredDraftNode()
+        self.structured_draft_node = StructuredDraftNode(tid=tid)
         # 章节创作节点
-        self.chapter_and_style_node = ChapterAndStyleNode()
+        self.chapter_and_style_node = ChapterAndStyleNode(tid=tid)
         # 深度与细微差别增强节点
-        self.depth_enhancer_node = DepthEnhancerNode()
+        self.depth_enhancer_node = DepthEnhancerNode(tid=tid)
         # 互动与争议注入节点
-        self.engagement_injector_node = EngagementInjectorNode()
+        # self.engagement_injector_node = EngagementInjectorNode()
 
         # 添加节点到工作流
         self.workflow.add_node(self.theme_analysis_node)
@@ -62,7 +64,7 @@ class ArticleCreateFlow:
         self.workflow.add_node(self.structured_draft_node)
         self.workflow.add_node(self.chapter_and_style_node)
         self.workflow.add_node(self.depth_enhancer_node)
-        self.workflow.add_node(self.engagement_injector_node)
+        # self.workflow.add_node(self.engagement_injector_node)
 
         # 设置节点执行顺序
         self.workflow.set_node_order([self.theme_analysis_node.name,
@@ -73,7 +75,6 @@ class ArticleCreateFlow:
                                       self.structured_draft_node.name,
                                       self.chapter_and_style_node.name,
                                       self.depth_enhancer_node.name,
-                                      self.engagement_injector_node.name,
                                       ])
 
     def _ensure_output_dir(self) -> None:

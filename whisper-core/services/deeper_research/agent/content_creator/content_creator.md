@@ -15,7 +15,7 @@
  </style_guide>
 
 
-## 输入 2: 选题分析与内容框架 (JSON 格式)
+## 输入 2: 选题分析与内容框架`topic_framework_with_search_results` (JSON 格式)
     {topic_framework_with_search_results}
 
 
@@ -33,9 +33,10 @@
 
  2.  **内容与结构遵循框架:**
      * **逻辑主线:** 文章的整体叙事逻辑和章节划分，必须依据 `<topic_framework_with_search_results>` 中的 `question_chain_framework_description` 和 `question_chain_details` 里问题的顺序。
-     * **素材是血肉:** 回答每个 `question_text` 时，**必须主要依据并充分利用**其对应的 `search_results_for_query` 中提供的素材和信息。结合 `answer_guidance` 来组织和呈现这些素材，确保内容准确地反映了搜索结果。
+     * **素材是血肉:** 回答每个 `question` 时，**必须主要依据并充分利用**其对应的 `search_results_for_query` 中提供的素材和信息。结合 `answer_focus` 来组织和呈现这些素材，确保内容准确地反映了搜索结果。
      * **严守素材边界:** **严格基于提供的素材进行写作，禁止添加外部信息、个人观点或进行无依据的猜测。**
      * **切入点:** 使用 `<topic_framework_with_search_results>` 中 `suggested_entry_method` 建议的方式开始文章，并确保这个开头与 `<style_guide>` 的风格要求一致。
+     * **叙事技巧：** 参考`<topic_framework_with_search_results>` 中`suggested_narrative_techniques` 的建议，使用指南中提到的技巧来构建文章的结构和逻辑。
 
  3.  **风格与内容的无缝融合:**
      * 将来自 `<topic_framework_with_search_results>` 的事实性内容，用 `<style_guide>` 中描述的语言风格和叙事技巧自然地表达出来。例如，用口语化的方式解释数据，用幽默的口吻谈论严肃的问题，用讲故事的方式呈现案例。
@@ -47,7 +48,7 @@
      * 文章结尾需回应问题链的最后环节，并采用 `<style_guide>` 中建议的结尾方式。
 
  6.  **文章长度:**
-     * 长度应由内容决定，确保覆盖所有问题链节点并充分运用素材。
+     * 文章的总字数严格限制在 2000 - 3500 字之间，尤其不能超过字数上限，每个`question`的字数应该尽量平均。
 
 ## 输出要求:
  直接输出撰写好的完整文章内容，使用Markdown格式。请仔细检查，确保最终成品在内容上忠实于素材框架，在风格上高度符合提供的 `<style_guide>` 要求。

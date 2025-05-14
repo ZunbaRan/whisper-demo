@@ -11,7 +11,6 @@ class ChainReport(BaseAgent):
         super().__init__(model_name="Gemini/gemini-2.5-pro")
         self.question_chain_details_copy = {}
 
-    PROMPT_TEMPLATE = open("services/deeper_research/agent/high_topic_question_chain_prompt.md", "r", encoding="utf-8").read()
 
     async def pre_process(self) -> None:
         high_topic_question_chain = self.context["high_topic_question_chain"]

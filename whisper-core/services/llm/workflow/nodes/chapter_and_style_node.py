@@ -55,6 +55,16 @@ class ChapterAndStyleNode(Node):
         content_str = "".join(content_list)  # 使用空字符串拼接
         print("章节创作结果node执行完毕")
 
+
+        # 把 content_str写入文件 public/output/podcast_article/{tid}/draft.md
+        import os
+        output_dir = f"public/output/podcast_article/{self.tid}"
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        with open(f"{output_dir}/draft.md", "w", encoding="utf-8") as f:
+            f.write(content_str)
+
+
         """处理输出数据"""
         self.outputs = {
             "draft": content_str

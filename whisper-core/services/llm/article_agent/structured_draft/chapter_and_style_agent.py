@@ -7,7 +7,7 @@ from services.llm.agent.base_agent import BaseAgent, logger
 class ChapterAndStyleAgent(BaseAgent):
     """章节创作，负责按章节撰写文章并注入特定风格"""
 
-    PROMPT_TEMPLATE_PATH = "services/article_agent/structured_draft/chapter_style_prompt_temp.md"
+    PROMPT_TEMPLATE_PATH = "services/llm/article_agent/structured_draft/chapter_style_prompt_temp.md"
 
     def __init__(self, model_name: str = "Gemini/gemini-2.5-pro"):
         super().__init__(model_name)

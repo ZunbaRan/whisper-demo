@@ -7,7 +7,7 @@ from services.llm.agent.base_agent import BaseAgent, logger
 class StructuredDraftAgent(BaseAgent):
     """结构化草稿Agent，负责创建详细的文章大纲"""
 
-    PROMPT_TEMPLATE_PATH = "services/article_agent/structured_draft/structured_draft_prompt_temp.md"
+    PROMPT_TEMPLATE_PATH = "services/llm/article_agent/structured_draft/structured_draft_prompt_temp.md"
 
     def __init__(self, model_name: str = "Gemini/gemini-2.5-pro"):
         super().__init__(model_name)
