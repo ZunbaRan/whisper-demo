@@ -34,7 +34,7 @@ poetry.toml
 .env.production.local
 
 # Project specific
-output/
+# output/
 
 
 *.log

@@ -20,7 +20,9 @@ async def article_create_style(podcast_file: str) -> Dict[str, Any]:
     """
 
     # 创建文章分析工作流
-    article_flow = ArticleCreateFlow("bi")
+    # podcast_file 去掉  .txt
+    tid = podcast_file.replace(".txt", "")
+    article_flow = ArticleCreateFlow( tid, "bi")
 
     print(f"----------tid: {article_flow.workflow.get_tid()}")
 
