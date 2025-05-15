@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import uuid
 from typing import AsyncGenerator, Tuple, Optional
 import logging
@@ -22,14 +23,14 @@ logger = logging.getLogger(__name__)
 class ArticleCreateFlow:
     """文章分析工作流"""
 
-    def __init__(self, author_name: str):
+    def __init__(self, tid :Optional[str], author_name: str):
         """初始化文章创建工作流
         
         Args:
             author_name: 作者名称
             tid: 任务ID，如果为None则自动生成
         """
-        tid = str(uuid.uuid4())
+        tid = tid or str(uuid.uuid4())
         self.author_name = author_name
         self.workflow = Workflow("article_create_flow", tid=tid)
         self.context = self.workflow.context
@@ -134,7 +135,7 @@ class ArticleCreateFlow:
         # 获取各个阶段的结果
         draft = self.workflow.context.get("draft", "")
         enhancement_result = self.workflow.context.get("enhancement_result", "")
-        engagement_injector = self.workflow.context.get("engagement_injector", "")
+        # engagement_injector = self.workflow.context.get("engagement_injector", "")
         
         # 获取任务ID并创建对应的目录
         tid = self.workflow.get_tid()
@@ -143,7 +144,7 @@ class ArticleCreateFlow:
         # 保存各个阶段的Markdown内容
         self._save_markdown(draft, tid_dir / "draft.md")
         self._save_markdown(enhancement_result, tid_dir / "enhancement.md")
-        self._save_markdown(engagement_injector, tid_dir / "engagement.md")
+        # self._save_markdown(engagement_injector, tid_dir / "engagement.md")
 
         # 创建元信息文件
         meta_info = {
@@ -166,3 +167,16 @@ class ArticleCreateFlow:
         """
         async for result in self.workflow.resume_from_node(node_name):
             yield result
+
+        # 获取各个阶段的结果
+        draft = self.workflow.context.get("draft", "")
+        enhancement_result = self.workflow.context.get("enhancement_result", "")
+        # engagement_injector = self.workflow.context.get("engagement_injector", "")
+
+        # 获取任务ID并创建对应的目录
+        tid = self.workflow.get_tid()
+        tid_dir = self._get_tid_dir(tid + "_resume" + time.strftime("%Y%m%d%H%M%S", time.localtime()))
+
+        # 保存各个阶段的Markdown内容
+        self._save_markdown(draft, tid_dir / "draft.md")
+        self._save_markdown(enhancement_result, tid_dir / "enhancement.md")

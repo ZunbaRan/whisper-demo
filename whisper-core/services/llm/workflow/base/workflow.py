@@ -206,7 +206,10 @@ class Workflow:
             node: 已执行的节点
         """
         # 将节点输出添加到上下文
-        self.context.update(node.get_all_outputs())
+        out = node.get_all_outputs()
+        self.context.update(out)
+        print(f"update context: {self.context}")
+
 
     def get_context(self) -> Dict[str, Any]:
         """获取工作流上下文

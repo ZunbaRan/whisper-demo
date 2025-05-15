@@ -1,5 +1,6 @@
 import logging
 import uuid
+from pathlib import Path
 from typing import AsyncGenerator, Tuple, Dict, Any
 
 from services.deeper_research.node.chain_report_node import ChainReportNode
@@ -59,3 +60,33 @@ class HighTopicChainWorkflow:
         # InitialQuerySubQueriesNode.call 应该返回 Tuple[str, str] (role, content)
         async for role, content in self.workflow.execute(initial_inputs=workflow_initial_inputs):
             yield role, content
+
+        topic_framework_with_search_results = self.workflow.context.get("topic_framework_with_search_results", "")
+        content_create = self.workflow.context.get("content_create", "")
+
+        # 获取任务ID并创建对应的目录
+        tid = self.workflow.get_tid()
+        tid_str = str(tid)
+
+        self._output_dir = Path("output/search_articles")  # 输出目录
+        self._output_dir.mkdir(parents=True, exist_ok=True)
+        tid_dir = self._output_dir / tid_str
+        tid_dir.mkdir(parents=True, exist_ok=True)
+
+
+        # 保存各个阶段的Markdown内容
+        self._save_markdown(topic_framework_with_search_results, tid_dir / "topic_framework_with_search_results.json")
+        self._save_markdown(content_create, tid_dir / "content_create.md")
+        # self._save_markdown(engagement_injector, tid_dir / "engagement.md")
+
+    def _save_markdown(self, content: str, file_path: Path) -> None:
+        """保存Markdown内容到文件
+
+        Args:
+            content: Markdown内容
+            file_path: 文件路径
+        """
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        logger.info(f"文件已保存到: {file_path}")
+

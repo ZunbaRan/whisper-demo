@@ -58,7 +58,7 @@ class DepthEnhancerAgent(BaseAgent):
     - 修改后的文章: 请直接返回修改后的文章内容，不要包含任何额外的解释或说明。
     """
 
-    def __init__(self, model_name: str = "Gemini/Gemini-2.0-Flash-thinking"):
+    def __init__(self, model_name: str = "Gemini/gemini-2.5-pro"):
         super().__init__(model_name)
         self.thesis = None
         self.selected_angle = None

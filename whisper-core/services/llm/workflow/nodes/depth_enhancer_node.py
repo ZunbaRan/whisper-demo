@@ -32,14 +32,6 @@ class DepthEnhancerNode(Node):
         content_list = [result[1] for result in results]
         content_str = "".join(content_list)  # 使用空字符串拼接
 
-        # 把 content_str写入文件 public/output/podcast_article/{tid}/draft.md
-        import os
-        output_dir = f"public/output/podcast_article/{self.tid}"
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        with open(f"{output_dir}/enhancement.md", "w", encoding="utf-8") as f:
-            f.write(content_str)
-
         self.outputs = {
             "enhancement_result": content_str
         }

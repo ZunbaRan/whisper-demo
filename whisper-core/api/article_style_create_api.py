@@ -49,7 +49,7 @@ async def resume_article_create_style(node_name: str, tid: str) -> Dict[str, Any
     """
     try:
         # 创建文章分析工作流
-        article_flow = ArticleCreateFlow("bi", tid)
+        article_flow = ArticleCreateFlow(tid, 'bi')
 
         results = []
         async for result in article_flow.resume_from_node(node_name):
