@@ -1,11 +1,21 @@
 from typing import Dict, List, Any, AsyncGenerator, Tuple, Coroutine
 import json
 import logging
+
+from google.genai.types import GenerateContentConfig
+from langchain_core.output_parsers import JsonOutputParser
+from pydantic import BaseModel
+
 from services.llm.agent.base_agent import BaseAgent
 from services.llm.utils.format_json import FormatJson
 
 logger = logging.getLogger(__name__)
 
+class AngleHookStrategistRes(BaseModel):
+    angle: str
+    resonance: str
+    connection: str
+    emotional_integration: str
 
 class AngleHookStrategist(BaseAgent):
 
@@ -65,6 +75,13 @@ class AngleHookStrategist(BaseAgent):
             if field not in self.context:
                 raise ValueError(f"缺少必要字段: {field}")
 
+        config = GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=list[AngleHookStrategistRes]
+
+        )
+        self.context["config"] = config
+
     async def build_messages(self) -> List[Dict[str, str]]:
         """构建消息"""
         # 从context中获取必要信息
@@ -84,17 +101,6 @@ class AngleHookStrategist(BaseAgent):
         )
         return [{'role': 'user', 'content': prompt}]
 
-    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[
-        Tuple[str, str], None]:
-        """处理响应"""
-        async for role, content in response:
-            yield role, content
-        yield 'assistant', '创意内容策略完成'
-
-    async def post_process(self) -> None:
-        """后处理：清理临时数据"""
-        pass
-
     async def parse_response(self, response: str) -> list:
-        """解析响应"""
-        return await FormatJson.llm_parse(response)
+        parser = JsonOutputParser()
+        return parser.parse(response)

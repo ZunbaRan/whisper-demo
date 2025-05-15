@@ -1,8 +1,23 @@
 import json
-from typing import AsyncGenerator, Tuple, List, Dict, Any
+from typing import AsyncGenerator, Tuple, List, Dict, Any, Union
+
+from google.genai.types import GenerateContentConfig
+from langchain_core.output_parsers import JsonOutputParser
+from pydantic import BaseModel
 
 from services.llm.agent.base_agent import BaseAgent, logger
 
+class Example(BaseModel):
+    """示例类"""
+    summary: str
+    illustrates: str
+
+class ElementsExtractionModel(BaseModel):
+    """元素提取模型"""
+    golden_quotes: List[str]
+    actionable_advice: List[str]
+    examples: List[Example]
+    data_points: List[str]
 
 class ElementsExtractionAgent(BaseAgent):
     """元素提取Agent"""
@@ -24,7 +39,12 @@ class ElementsExtractionAgent(BaseAgent):
 - data_points: 关键数据列表（字符串数组）"""
 
     async def pre_process(self) -> None:
-        pass
+        # 配置 Google Search grounding
+        config = GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=ElementsExtractionModel
+        )
+        self.context["config"] = config
 
     async def build_messages(self) -> List[Dict[str, str]]:
         content = self.context["content"]
@@ -36,13 +56,7 @@ class ElementsExtractionAgent(BaseAgent):
         )
         return [{'role': 'user', 'content': prompt}]
 
-    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
-        async for role, content in response:
-            yield role, content
-        yield 'assistant', '关键元素提取完成'
 
-    async def post_process(self) -> None:
-        pass
-
-    async def parse_response(self, response: str) -> Dict[str, Any]:
-        pass
+    async def parse_response(self, response: str) -> Union[dict, list, str, int, float, bool, None]:
+        parser = JsonOutputParser()
+        return parser.parse(response)

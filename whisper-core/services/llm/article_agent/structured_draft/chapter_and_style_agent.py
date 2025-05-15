@@ -67,12 +67,5 @@ class ChapterAndStyleAgent(BaseAgent):
         # )
         # return [{'role': 'user', 'content': prompt}]
 
-    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
-        async for role, content in response:
-            yield role, content
-
-    async def post_process(self) -> None:
-        pass
-
-    async def parse_response(self, response: str) -> Dict[str, Any]:
-        pass
+    async def parse_response(self, response: str) -> str | None | Any:
+        return response

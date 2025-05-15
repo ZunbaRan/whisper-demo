@@ -14,32 +14,13 @@ from services.llm.workflow.base.output_manager import OutputManager
 from pydantic import BaseModel
 from typing import List, Optional
 
-# 定义问题链详情的子模型
-class QuestionChainDetail(BaseModel):
-    question: str
-    answer_focus: str
-    information_needed_queries: List[str]
 
-# 定义主模型
-class HighTopicQuestionChainModel(BaseModel):
-    question_chain_framework_description: str
-    question_chain_details: List[QuestionChainDetail]
-    suggested_entry_method: str
-    suggested_narrative_techniques: List[str]
 
 class HighTopicQuestionChainNode(Node):
 
     def __init__(self, tid: str = uuid.uuid4(), name: str = "high_topic_question_chain"):
         super().__init__(name, HighTopicQuestionChain(), tid)
         self.output_manager = OutputManager("public/output")
-
-    async def pre_process(self) -> None:
-        # 配置 Google Search grounding
-        config = GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema = HighTopicQuestionChainModel
-        )
-        self.context["config"] = config
 
     async def call(self) -> AsyncGenerator[Tuple[str, str], None]:
         async for role, content in self.agent.call(**self.context):

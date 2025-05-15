@@ -1,8 +1,17 @@
 import json
 from typing import AsyncGenerator, List, Dict, Any, Tuple
 
+from google.genai.types import GenerateContentConfig
+from langchain_core.output_parsers import JsonOutputParser
+from pydantic import BaseModel
+
 from services.llm.agent.base_agent import BaseAgent, logger
 
+class ThemeAnalysisRes(BaseModel):
+    topic_domain: str
+    main_theme: str
+    thesis: str
+    sub_topics: List[str]
 
 class ThemeAnalysisAgent(BaseAgent):
     """主题分析Agent"""
@@ -22,32 +31,19 @@ class ThemeAnalysisAgent(BaseAgent):
 - sub_topics: 子主题列表（字符串数组）"""
 
     async def pre_process(self) -> None:
-        pass
+        config = GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=ThemeAnalysisRes
+        )
+        self.context["config"] = config
+
 
     async def build_messages(self) -> List[Dict[str, str]]:
         content = self.context["content"]
         prompt = await self.build_prompt(self.PROMPT_TEMPLATE, text=content)
         return [{'role': 'user', 'content': prompt}]
 
-    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
-        async for role, content in response:
-            yield role, content
-        yield 'assistant', '主题分析完成'
 
-    async def post_process(self) -> None:
-        pass
-
-    async def parse_response(self, response: str) -> Dict[str, Any]:
-        try:
-            # 提取JSON内容
-            if "```json" in response:
-                start = response.find("```json") + 7
-                end = response.find("```", start)
-                if end != -1:
-                    json_content = response[start:end].strip()
-                    return json.loads(json_content)
-
-            return json.loads(response)
-        except json.JSONDecodeError as e:
-            logger.error(f"解析JSON响应失败: {str(e)}")
-            return {"main_theme": "", "thesis": "", "sub_topics": []}
+    async def parse_response(self, response: str) -> Dict:
+        parser = JsonOutputParser()
+        return parser.parse(response)

@@ -1,8 +1,15 @@
 import json
 from typing import List, Dict, AsyncGenerator, Tuple, Any
 
+from google.genai.types import GenerateContentConfig
+from langchain_core.output_parsers import JsonOutputParser
+from pydantic import BaseModel
+
 from services.llm.agent.base_agent import BaseAgent, logger
 
+
+class StructureAnalysisModel(BaseModel):
+    structure_outline: List[str]
 
 class StructureAnalysisAgent(BaseAgent):
     """结构分析Agent"""
@@ -21,7 +28,12 @@ class StructureAnalysisAgent(BaseAgent):
 - structure_outline: 结构大纲列表（字符串数组）"""
 
     async def pre_process(self) -> None:
-        pass
+        # 配置 Google Search grounding
+        config = GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=StructureAnalysisModel
+        )
+        self.context["config"] = config
 
     async def build_messages(self) -> List[Dict[str, str]]:
         theme_result = self.context["theme_result"]
@@ -33,24 +45,7 @@ class StructureAnalysisAgent(BaseAgent):
         )
         return [{'role': 'user', 'content': prompt}]
 
-    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
-        async for role, content in response:
-            yield role, content
-        yield 'assistant', '结构分析完成'
 
-    async def post_process(self) -> None:
-        pass
-
-    async def parse_response(self, response: str) -> list[str]:
-        try:
-            if "```json" in response:
-                start = response.find("```json") + 7
-                end = response.find("```", start)
-                if end != -1:
-                    json_content = response[start:end].strip()
-                    return json.loads(json_content)
-            else:
-                return json.loads(response)
-        except json.JSONDecodeError as e:
-            logger.error(f"解析JSON响应失败: {str(e)}")
-            return []
+    async def parse_response(self, response: str) -> Dict:
+        parser = JsonOutputParser()
+        return parser.parse(response)

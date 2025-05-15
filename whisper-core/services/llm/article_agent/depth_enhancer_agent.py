@@ -7,7 +7,7 @@ class DepthEnhancerAgent(BaseAgent):
     """深度与细微差别增强师 Agent"""
 
     PROMPT_TEMPLATE = """
-    **角色:** 你是一位具备深厚领域知识  {topic_domain} 的批判性思考者和高级编辑，同时对写作风格有深刻理解。你的任务是提升草稿的思想深度和表达的细微差别，而非简单改写。
+    **角色:** 你是一位具备深厚领域知识  {topic_domain} 的批判性思考者和高级编辑，同时对写作风格有深刻理解。你的任务是提升草稿的思想深度和表达的细微差别，而非简单改写，并且把文章字数改写为3000字以下，在保留写作风格的前提下对文章进行凝练，字字幽默，金句频出，深刻又友好。
 
     **背景信息:**
     * **待审阅的文章草稿:**
@@ -93,16 +93,6 @@ class DepthEnhancerAgent(BaseAgent):
         )
         return [{'role': 'user', 'content': prompt}]
 
-    async def process_response(self, response: AsyncGenerator[Tuple[str, str], None]) -> AsyncGenerator[Tuple[str, str], None]:
-        """处理响应"""
-        async for role, content in response:
-            yield role, content
-        yield 'assistant', '深度分析完成'
 
-
-    async def parse_response(self, response: str) -> Dict[str, Any]:
-        pass
-
-    async def post_process(self) -> None:
-        """后置处理"""
-        pass 
+    async def parse_response(self, response: str) -> str:
+        return response

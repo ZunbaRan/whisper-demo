@@ -34,7 +34,7 @@ class ArticleCreateFlow:
         self.author_name = author_name
         self.workflow = Workflow("article_create_flow", tid=tid)
         self.context = self.workflow.context
-        self._output_dir = Path("output/articles")  # 输出目录
+        self._output_dir = Path("public/output/podcast_article")  # 输出目录
         self._ensure_output_dir()
 
         print(f"tid: {self.workflow.get_tid()}")

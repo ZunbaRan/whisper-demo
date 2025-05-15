@@ -68,7 +68,7 @@ class HighTopicChainWorkflow:
         tid = self.workflow.get_tid()
         tid_str = str(tid)
 
-        self._output_dir = Path("output/search_articles")  # 输出目录
+        self._output_dir = Path("public/output/event_article")  # 输出目录
         self._output_dir.mkdir(parents=True, exist_ok=True)
         tid_dir = self._output_dir / tid_str
         tid_dir.mkdir(parents=True, exist_ok=True)
