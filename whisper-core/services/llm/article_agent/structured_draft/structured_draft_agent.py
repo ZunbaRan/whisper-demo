@@ -16,7 +16,6 @@ class Section(BaseModel):
     chapter_key_points: List[str]
     content_elements: List[str]
     writing_guidance: str
-    estimated_length: str
 
 class StructuredDraftRes(BaseModel):
     suggested_titles: List[str]

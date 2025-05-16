@@ -1,0 +1,159 @@
+{
+  "reasoner_models": {
+    "DeepSeek/DeepSeek-Reasoner": {
+      "model_id": "deepseek-reasoner",
+      "api_key": "sk-76595a859876480cb1de7ed3a7ee9239",
+      "api_base_url": "https://api.deepseek.com",
+      "api_request_address": "/v1/chat/completions",
+      "is_origin_reasoning": true,
+      "is_valid": false,
+      "proxy_open": false
+    },
+    "Volcengine/DeepSeek-R1": {
+      "model_id": "ep-20250211101729-97nwq",
+      "api_key": "877e8151-2569-4337-a3e2-04f6ae9d5157",
+      "api_base_url": "https://ark.cn-beijing.volces.com/api",
+      "api_request_address": "/v3/chat/completions",
+      "is_origin_reasoning": true,
+      "is_valid": true,
+      "proxy_open": false
+    },
+    "Gemini/Gemini-2.0-Flash-thinking": {
+      "model_id": "gemini-2.0-flash-thinking-exp-01-21",
+      "api_key": "AIzaSyAoUPjAqWzwqKxdHE6K3TdkuxVX0Sgg_Y8",
+      "api_base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "api_request_address": "/chat/completions",
+      "is_origin_reasoning": true,
+      "is_valid": true,
+      "proxy_open": true
+    },
+    "Gemini/gemini-2.5-flash": {
+      "model_id": "gemini-2.5-flash-preview-04-17",
+      "api_key": "AIzaSyAoUPjAqWzwqKxdHE6K3TdkuxVX0Sgg_Y8",
+      "api_base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "api_request_address": "/chat/completions",
+      "is_origin_reasoning": true,
+      "is_valid": true,
+      "proxy_open": true
+    },
+    "Gemini/gemini-2.5-pro": {
+      "model_id": "gemini-2.5-pro-preview-05-06",
+      "api_key": "AIzaSyAoUPjAqWzwqKxdHE6K3TdkuxVX0Sgg_Y8",
+      "api_base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "api_request_address": "/chat/completions",
+      "is_origin_reasoning": true,
+      "is_valid": true,
+      "proxy_open": true
+    },
+    "Volcengine/doubao-1.5-thinking-pro": {
+      "model_id": "ep-20250501113140-lmw5k",
+      "api_key": "877e8151-2569-4337-a3e2-04f6ae9d5157",
+      "api_base_url": "https://ark.cn-beijing.volces.com/api",
+      "api_request_address": "/v3/chat/completions",
+      "model_format": "openai",
+      "is_valid": true,
+      "proxy_open": false
+    }
+  },
+  "target_models": {
+     "Kimi/kimi-latest": {
+      "model_id": "kimi-latest",
+      "api_key": "sk-ABrFfNmYXHXzxfKRvTXddWKa8aIIOhcmajZtSMwpfKXMdVQd",
+      "api_base_url": "https://api.moonshot.cn/v1",
+      "api_request_address": "/chat/completions",
+      "model_format": "openai",
+      "is_valid": true,
+      "proxy_open": false
+    },
+    "GLM/GLM-4-Air-250414": {
+      "model_id": "glm-4-air-250414",
+      "api_key": "2c1aafa6fec3870a1b58ce4110103563.RDKI6qfuATJ7gb2k",
+      "api_base_url": "https://open.bigmodel.cn/api/paas/v4",
+      "api_request_address": "/chat/completions",
+      "model_format": "openai",
+      "is_valid": true,
+      "proxy_open": false
+    },
+    "CloseAi/Claude-3-7-Sonnet": {
+      "model_id": "claude-3-7-sonnet-20250219",
+      "api_key": "sk-cFVJq5no8VmM2VD8PLFVA6hblflKYwGf9bymWhG36I1poP1y",
+      "api_base_url": "https://api.openai-proxy.org/anthropic",
+      "api_request_address": "/v1/messages",
+      "model_format": "anthropic",
+      "is_valid": false,
+      "proxy_open": false
+    },
+    "Gemini/Gemini-2.0-Flash": {
+      "model_id": "gemini-2.0-flash",
+      "api_key": "AIzaSyAoUPjAqWzwqKxdHE6K3TdkuxVX0Sgg_Y8",
+      "api_base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "api_request_address": "/chat/completions",
+      "model_format": "openai",
+      "is_valid": true,
+      "proxy_open": true
+    },
+    "DeepSeek/deepseekV3": {
+      "model_id": "deepseek-chat",
+      "api_key": "sk-76595a859876480cb1de7ed3a7ee9239",
+      "api_base_url": "https://api.deepseek.com",
+      "api_request_address": "/v1/chat/completions",
+      "model_format": "openai",
+      "is_valid": true,
+      "proxy_open": false
+    },
+    "Volcengine/search-bot": {
+      "model_id": "bot-20250325153842-sgrjg",
+      "api_key": "877e8151-2569-4337-a3e2-04f6ae9d5157",
+      "api_base_url": "https://ark.cn-beijing.volces.com/api",
+      "api_request_address": "/v3/bots/chat/completions",
+      "model_format": "openai",
+      "is_valid": true,
+      "proxy_open": false
+    },
+    "Volcengine/doubao-pro-1.5": {
+      "model_id": "ep-20250201221516-pv4zn",
+      "api_key": "877e8151-2569-4337-a3e2-04f6ae9d5157",
+      "api_base_url": "https://ark.cn-beijing.volces.com/api",
+      "api_request_address": "/v3/chat/completions",
+      "model_format": "openai",
+      "is_valid": true,
+      "proxy_open": false
+    },
+    "Bailian/qwen-max": {
+      "model_id": "qwen-max-latest",
+      "api_key": "sk-c96e03bdd60d4242b72e5cff45a1ec97",
+      "api_base_url": "https://dashscope.aliyuncs.com/compatible-mode",
+      "api_request_address": "/v1/chat/completions",
+      "model_format": "openai",
+      "is_valid": true,
+      "proxy_open": false
+    }
+  },
+  "proxy": {
+    "proxy_open": true,
+    "proxy_address": "http://127.0.0.1:7890"
+  },
+  "system": {
+    "allow_origins": [
+      "*"
+    ],
+    "log_level": "INFO",
+    "api_key": "123456",
+    "save_deepseek_tokens": false,
+    "save_deepseek_tokens_max_tokens": 5
+  },
+  "composite_models": {
+    "deepgeminiflash": {
+      "model_id": "deepgeminiflash",
+      "reasoner_models": "Volcengine/DeepSeek-R1",
+      "target_models": "Gemini/Gemini-2.0-Flash",
+      "is_valid": true
+    },
+    "deepgeminipro": {
+      "model_id": "deepgeminipro",
+      "reasoner_models": "Volcengine/DeepSeek-R1",
+      "target_models": "Gemini/Gemini-2.0-Pro",
+      "is_valid": true
+    }
+  }
+}

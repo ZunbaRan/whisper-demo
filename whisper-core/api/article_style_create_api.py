@@ -21,14 +21,14 @@ async def article_create_style(podcast_file: str) -> Dict[str, Any]:
 
     # 创建文章分析工作流
     # podcast_file 去掉  .txt
-    tid = podcast_file.replace(".txt", "")
+    tid = podcast_file
     article_flow = ArticleCreateFlow( tid, "bi")
 
     print(f"----------tid: {article_flow.workflow.get_tid()}")
 
     results = []
-    # output/c6c1ac2e-0582-11f0-a087-2b17684717c1.txt
 
+    podcast_file = podcast_file + ".txt"
     podcast_file_dir = os.path.join("output", podcast_file)
     if os.path.exists(podcast_file_dir):
         with open(podcast_file_dir, "r", encoding="utf-8") as f:

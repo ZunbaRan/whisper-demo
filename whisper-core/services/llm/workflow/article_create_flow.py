@@ -8,6 +8,7 @@ from pathlib import Path
 from datetime import datetime
 
 from .nodes.angle_hook_strategist_node import AngleHookStrategistNode
+from .nodes.article_min_node import ArticleMinNode
 from .nodes.chapter_and_style_node import ChapterAndStyleNode
 from .nodes.depth_enhancer_node import DepthEnhancerNode
 from .nodes.elements_extraction_node import ElementsExtractionNode
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 class ArticleCreateFlow:
     """文章分析工作流"""
 
-    def __init__(self, tid :Optional[str], author_name: str):
+    def __init__(self, tid: Optional[str], author_name: str):
         """初始化文章创建工作流
         
         Args:
@@ -51,8 +52,10 @@ class ArticleCreateFlow:
         self.structured_draft_node = StructuredDraftNode(tid=tid)
         # 章节创作节点
         self.chapter_and_style_node = ChapterAndStyleNode(tid=tid)
+
+        self.article_min_node = ArticleMinNode(tid=tid)
         # 深度与细微差别增强节点
-        self.depth_enhancer_node = DepthEnhancerNode(tid=tid)
+        # self.depth_enhancer_node = DepthEnhancerNode(tid=tid)
         # 互动与争议注入节点
         # self.engagement_injector_node = EngagementInjectorNode()
 
@@ -64,7 +67,8 @@ class ArticleCreateFlow:
         self.workflow.add_node(self.structured_draft_node)
         self.workflow.add_node(self.structured_draft_node)
         self.workflow.add_node(self.chapter_and_style_node)
-        self.workflow.add_node(self.depth_enhancer_node)
+        self.workflow.add_node(self.article_min_node)
+        # self.workflow.add_node(self.depth_enhancer_node)
         # self.workflow.add_node(self.engagement_injector_node)
 
         # 设置节点执行顺序
@@ -75,7 +79,7 @@ class ArticleCreateFlow:
                                       self.structured_draft_node.name,
                                       self.structured_draft_node.name,
                                       self.chapter_and_style_node.name,
-                                      self.depth_enhancer_node.name,
+                                      self.article_min_node.name,
                                       ])
 
     def _ensure_output_dir(self) -> None:
@@ -134,27 +138,28 @@ class ArticleCreateFlow:
 
         # 获取各个阶段的结果
         draft = self.workflow.context.get("draft", "")
-        enhancement_result = self.workflow.context.get("enhancement_result", "")
+        article_min = self.workflow.context.get("article_min", "")
+        # enhancement_result = self.workflow.context.get("enhancement_result", "")
         # engagement_injector = self.workflow.context.get("engagement_injector", "")
-        
+
         # 获取任务ID并创建对应的目录
         tid = self.workflow.get_tid()
         tid_dir = self._get_tid_dir(tid)
 
         # 保存各个阶段的Markdown内容
         self._save_markdown(draft, tid_dir / "draft.md")
-        self._save_markdown(enhancement_result, tid_dir / "enhancement.md")
+        self._save_markdown(article_min, tid_dir / "article_min.md")
         # self._save_markdown(engagement_injector, tid_dir / "engagement.md")
 
         # 创建元信息文件
-        meta_info = {
-            "author": self.author_name,
-            "tid": str(tid),  # 确保tid是字符串
-            "created_at": datetime.now().isoformat(),
-            "files": ["draft.md", "enhancement.md", "engagement.md"]
-        }
-        with open(tid_dir / "meta.json", 'w', encoding='utf-8') as f:
-            json.dump(meta_info, f, ensure_ascii=False, indent=2)
+        # meta_info = {
+        #     "author": self.author_name,
+        #     "tid": str(tid),  # 确保tid是字符串
+        #     "created_at": datetime.now().isoformat(),
+        #     "files": ["draft.md"]
+        # }
+        # with open(tid_dir / "meta.json", 'w', encoding='utf-8') as f:
+        #     json.dump(meta_info, f, ensure_ascii=False, indent=2)
 
     async def resume_from_node(self, node_name: str) -> AsyncGenerator[Tuple[str, str], None]:
         """从指定节点继续执行工作流
