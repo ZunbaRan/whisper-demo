@@ -19,27 +19,11 @@ class StyleGuideNode(Node):
         """准备上下文数据"""
         # 获取所有文章分析结果
         analyses = self.inputs.get("analyses", '')
-        # 提取字符串中所有 ```json 和 ``` 之间内容，并且转换为 list[Dict[str, Any]]
-        json_blocks = []
-        start_index = 0
-        while True:
-            start = analyses.find('```json', start_index)
-            if start == -1:
-                break
-            start += len('```json')
-            end = analyses.find('```', start)
-            if end == -1:
-                break
-            json_str = analyses[start:end].strip()
-            try:
-                json_data = json.loads(json_str)
-                json_blocks.append(json_data)
-            except json.JSONDecodeError:
-                print(f"无法解析 JSON 数据: {json_str}")
-            start_index = end + len('```')
+
+        # analyses 是字符串数组
 
         self.context = {
-            "content": json_blocks,
+            "content": analyses,
             "author_name": self.inputs.get("author_name", "unknown")
         }
 
@@ -52,12 +36,10 @@ class StyleGuideNode(Node):
         # 把 processed_results 持久化到文件
         self.output_manager = OutputManager()
         # 提取元组集合中所有的 content 部分, 并直接拼接为一个str
-        content_list = [result[1] for result in results]
-        content_str = "".join(content_list)  # 使用空字符串拼接
-        print(f"风格指南生成结果: {content_str}")
+        format_res = self.agent.format_res
 
-        self.output_manager.save_str_file("style_guide", content_str)
+        self.output_manager.save_str_file("style_guide", json.dumps(format_res, ensure_ascii=False, indent=2))
         """处理输出数据"""
         self.outputs = {
-            "style_guide": content_str
+            "style_guide": format_res
         }

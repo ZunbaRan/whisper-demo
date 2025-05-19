@@ -49,7 +49,8 @@ class ArticleAnalysisNode(Node):
             logger.info(f"批量分析文章，目录: {self.context['articles_dir']}")
             articles = await self._read_markdown_files(self.context["articles_dir"])
             logger.info(f"找到 {len(articles)} 篇文章需要分析")
-            
+
+            analyses = []
             for article in articles:
                 logger.info(f"开始分析文章: {article['filename']}")
                 
@@ -59,22 +60,13 @@ class ArticleAnalysisNode(Node):
                     author_name=self.context["author_name"]
                 ):
                     yield result
-                    
-            
-    async def process_output(self, processed_results: List[Tuple[str, str]]) -> None:
-        """处理输出数据"""
-        logger.info("处理文章分析输出")
 
-        # 提取元组集合中所有的 content 部分
-        content_list = [result[1] for result in processed_results]
-        content_str = "".join(content_list)  # 使用空字符串拼接
-    
-        logger.info(f"获取批量分析结果: {content_str}")
-        self.outputs = {
-            "analyses": content_str
-        }
+                one_res = self.agent.format_res
+                analyses.append(one_res)
 
-        logger.info(f"文章分析节点输出: {content_str}")
+            self.outputs = {
+                "analyses": analyses
+            }
 
     async def _read_markdown_files(self, dir_path: str) -> List[Dict[str, str]]:
         """读取目录中的所有markdown文件"""

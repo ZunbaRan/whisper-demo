@@ -1,8 +1,22 @@
 import json
 from typing import AsyncGenerator, Tuple, Dict, Any, List
 
+from google.genai.types import GenerateContentConfig
+from langchain_core.output_parsers import JsonOutputParser
+from pydantic import BaseModel
+
 from services.llm.article_agent.angle_hook_strategist import logger
 from services.llm.agent.base_agent import BaseAgent
+
+class OneStyle(BaseModel):
+    tone_and_voice: List[str]
+    sentence_structure: str
+    average_sentence_length: int
+    vocabulary: List[str]
+    rhetorical_devices: List[str]
+    paragraphing_and_flow: str
+    opening_closing_patterns: List[str]
+    few_shot: List[str]
 
 
 class SingleArticleAnalyzer(BaseAgent):
@@ -17,6 +31,7 @@ class SingleArticleAnalyzer(BaseAgent):
 4. 修辞手法 (Rhetorical Devices): (例如, 隐喻, 类比, 反问, 重复, 讲故事) - 列出观察到的手法。
 5. 段落与流畅性 (Paragraphing & Flow): (例如, 短小精悍的段落; 详细的长段落; 过渡词的使用) - 描述结构。
 6. 开头与结尾模式 (Opening & Closing Patterns): 作者通常如何开始和结束文章？ (例如, 轶事, 大胆陈述, 提问, 总结)
+7. 少量极具代表性的样本(few shot)
 
 输出格式: 请以JSON格式返回结果，包含以下字段：
 - tone_and_voice: 语气与语态（字符串数组）
@@ -25,10 +40,16 @@ class SingleArticleAnalyzer(BaseAgent):
 - vocabulary: 词汇选择（字符串数组）
 - rhetorical_devices: 修辞手法（字符串数组）
 - paragraphing_and_flow: 段落与流畅性（字符串）
-- opening_closing_patterns: 开头与结尾模式（字符串数组）"""
+- opening_closing_patterns: 开头与结尾模式（字符串数组）
+- few_shot: 少量具有代表性的样本（字符串数组）
+"""
 
     async def pre_process(self) -> None:
-        pass
+        config = GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=OneStyle
+        )
+        self.context["config"] = config
 
     async def build_messages(self) -> List[Dict[str, str]]:
         prompt = await self.build_prompt(
@@ -45,42 +66,6 @@ class SingleArticleAnalyzer(BaseAgent):
         filename = self.context.get("filename", "unknown")
         yield 'assistant', f'完成文章分析: {filename}'
 
-    async def post_process(self) -> None:
-        pass
-
-    async def parse_response(self, response: str) -> Dict[str, Any]:
-        try:
-            res = {
-                "tone_and_voice": [],
-                "sentence_structure": "",
-                "average_sentence_length": 0,
-                "vocabulary": [],
-                "rhetorical_devices": [],
-                "paragraphing_and_flow": "",
-                "opening_closing_patterns": []
-            }
-
-            # 提取JSON内容
-            if "```json" in response:
-                # 找到开始和结束标记
-                start = response.find("```json") + 7
-                end = response.find("```", start)
-                if end != -1:
-                    json_content = response[start:end].strip()
-                    res = json.loads(json_content)
-
-            # 如果没有找到JSON标记，尝试直接解析
-            res = json.loads(response)
-            return res
-
-        except json.JSONDecodeError as e:
-            logger.error(f"解析JSON响应失败: {str(e)}")
-            return {
-                "tone_and_voice": [],
-                "sentence_structure": "",
-                "average_sentence_length": 0,
-                "vocabulary": [],
-                "rhetorical_devices": [],
-                "paragraphing_and_flow": "",
-                "opening_closing_patterns": []
-            }
+    async def parse_response(self, response: str) -> Dict:
+        parser = JsonOutputParser()
+        return parser.parse(response)

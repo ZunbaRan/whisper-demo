@@ -33,3 +33,4 @@ zhipuai==2.1.5.20250421
 langchain-core==0.3.59
 langchain==0.3.25
 langchain-community==0.3.23
+python-docx==1.0.0

@@ -66,7 +66,7 @@ class OutputManager:
             step_name: 步骤名称
             data: 要保存的数据
         """
-        file_path = os.path.join(self.output_dir, self.tid, f"{step_name}.txt")
+        file_path = os.path.join(self.output_dir, str(self.tid), f"{step_name}.txt")
         if not os.path.exists(file_path):
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
         

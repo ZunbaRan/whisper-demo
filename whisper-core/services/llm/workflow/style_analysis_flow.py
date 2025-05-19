@@ -32,29 +32,23 @@ class StyleAnalysisFlow:
 
     async def analyze_author_style(self, articles_dir: str) -> AsyncGenerator[Tuple[str, str], None]:
         """分析作者风格的主方法"""
-        try:
-            # 检查目录是否存在
-            if not os.path.exists(articles_dir):
-                raise FileNotFoundError(f"目录不存在: {articles_dir}")
-            if not os.path.isdir(articles_dir):
-                raise NotADirectoryError(f"路径不是目录: {articles_dir}")
 
-            # 准备初始输入
-            initial_inputs = {
-                "articles_dir": articles_dir,
-                "author_name": self.author_name
-            }
+        # 检查目录是否存在
+        if not os.path.exists(articles_dir):
+            raise FileNotFoundError(f"目录不存在: {articles_dir}")
+        if not os.path.isdir(articles_dir):
+            raise NotADirectoryError(f"路径不是目录: {articles_dir}")
 
-            logger.info(f"开始执行文章分析工作流，作者: {self.author_name}")
-            logger.info(f"文章目录: {articles_dir}")
-            logger.info(f"初始输入: {json.dumps(initial_inputs, ensure_ascii=False, indent=2)}")
+        # 准备初始输入
+        initial_inputs = {
+            "articles_dir": articles_dir,
+            "author_name": self.author_name
+        }
 
-            # 执行工作流
-            async for result in self.workflow.execute(initial_inputs):
-                yield result
+        logger.info(f"开始执行文章分析工作流，作者: {self.author_name}")
+        logger.info(f"文章目录: {articles_dir}")
+        logger.info(f"初始输入: {json.dumps(initial_inputs, ensure_ascii=False, indent=2)}")
 
-        except Exception as e:
-            error_msg = f"分析作者风格时发生错误: {str(e)}"
-            logger.error(error_msg)
-            yield 'error', error_msg
-            yield 'done' ,'[DONE]'
+        # 执行工作流
+        async for result in self.workflow.execute(initial_inputs):
+            yield result
