@@ -65,7 +65,6 @@ class ArticleCreateFlow:
         self.workflow.add_node(self.structure_analysis_node)
         self.workflow.add_node(self.angle_hook_strategist_node)
         self.workflow.add_node(self.structured_draft_node)
-        self.workflow.add_node(self.structured_draft_node)
         self.workflow.add_node(self.chapter_and_style_node)
         self.workflow.add_node(self.article_min_node)
         # self.workflow.add_node(self.depth_enhancer_node)
@@ -76,7 +75,6 @@ class ArticleCreateFlow:
                                       self.elements_extraction_node.name,
                                       self.structure_analysis_node.name,
                                       self.angle_hook_strategist_node.name,
-                                      self.structured_draft_node.name,
                                       self.structured_draft_node.name,
                                       self.chapter_and_style_node.name,
                                       self.article_min_node.name,
@@ -121,7 +119,8 @@ class ArticleCreateFlow:
         Yields:
             str: 处理过程中的流式输出
         """
-        file_path = os.path.join("services/llm/article_agent/style/bi_sytle2.md")
+        # file_path = os.path.join("services/llm/article_agent/style/bi_sytle2.md")
+        file_path = os.path.join("services/llm/article_agent/style/banfo_style_guide.md")
         if os.path.exists(file_path):
             with open(file_path, "r", encoding="utf-8") as f:
                 style_guide = f.read()
