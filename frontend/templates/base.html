@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}{% endblock %}</title>
+    <link href="/static/css/main.css" rel="stylesheet">
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <nav>
+        <a href="/">首页</a>
+        <a href="/transcribe">语音转写</a>
+        <a href="/analyze">深度分析</a>
+        <a href="/crawl">网页抓取</a>
+        <a href="/article_convert">文章转换</a>
+    </nav>
+    
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+    // 通用的 API 调用函数
+    async function callAPI(service, endpoint, method = 'GET', data = null) {
+        try {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            const response = await fetch(`/api/${service}/${endpoint}`, options);
+            return await response.json();
+        } catch (error) {
+            console.error('API 调用错误:', error);
+            throw error;
+        }
+    }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ status_code }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-danger">
+        <h4 class="alert-heading">Error {{ status_code }}</h4>
+        <p>{{ detail }}</p>
+    </div>
+    <a href="/" class="btn btn-primary">返回首页</a>
+</div>
+{% endblock %} 

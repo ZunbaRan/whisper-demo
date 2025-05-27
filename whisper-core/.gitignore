@@ -1,0 +1,67 @@
+# Poetry virtual environment
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Output directory
+#output/
+
+models/
+downloads/
+
+# Poetry cache and local configuration
+#.poetry/
+#poetry.lock
+
+# IDE settings
+.vscode/
+.idea/
+
+# Environment variables
+.env
+
+# Log files
+*.log
+
+# Cache directories
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# 模型和下载文件
+models/
+downloads/
+*.pt
+*.pth
+*.bin
+*.onnx
+*.model
+
+# 大型二进制文件
+*.zip
+*.tar.gz
+*.mp3
+*.wav
+*.m4a
+
+# 缓存文件
+cache/
+.cache/
+
+# 数据文件
+# @data/
+# *.db
+
+# 模型文件
+models/
+*.bin
+*.pth
+/services/llm/manager/model_config.json
+/workflow_contexts/
+/services/llm/clients/vertex_credentials/gen-lang-client-0089900393-9eb47c5f818f.json

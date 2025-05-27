@@ -1,0 +1,14 @@
+/* 自定义样式 */
+.entry-card {
+    transition: all 0.3s ease;
+}
+
+.entry-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.status-badge {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+} 
