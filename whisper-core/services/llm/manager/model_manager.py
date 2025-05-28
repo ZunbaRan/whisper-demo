@@ -67,7 +67,7 @@ class ModelManager:
                 api_request_address=config["api_request_address"],
                 is_valid=config["is_valid"],
                 proxy_open=config["proxy_open"],
-                is_origin_reasoning=config["is_origin_reasoning"]
+                is_origin_reasoning=False
             )
         except KeyError as e:
             logger.error(f"获取推理模型 {model_name} 配置失败: {e}")

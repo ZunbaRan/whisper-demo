@@ -18,7 +18,6 @@ class ContentCreatorNode(Node):
 
     async def call(self) -> AsyncGenerator[Tuple[str, str], None]:
         async for role, content in self.agent.call(**self.context):
-            print(f"{content}", flush=True)
             yield role, content
 
         self.outputs = {

@@ -23,18 +23,20 @@ class CreateChainModel(BaseModel):
 
 class CreateChainByMaterials(BaseAgent):
     def __init__(self):
-        super().__init__(model_name="Gemini/gemini-2.5-pro")
+        # super().__init__(model_name="Gemini/gemini-2.5-pro")
+        super().__init__(model_name="Volcengine/DeepSeek-R1")
 
     PROMPT_TEMPLATE = open("services/deeper_research/agent/create_chain_from_text/create_chain_from_text.md", "r", encoding="utf-8").read()
 
 
     async def pre_process(self) -> None:
-        # 配置 Google Search grounding
-        config = GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema = CreateChainModel
-        )
-        self.context["config"] = config
+        if self.model_name.startswith("Gemini"):
+            # 配置 Google Search grounding
+            config = GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema = CreateChainModel
+            )
+            self.context["config"] = config
 
     async def parse_response(self, response: str) -> Union[dict, list, str, int, float, bool, None]:
         parser = JsonOutputParser()

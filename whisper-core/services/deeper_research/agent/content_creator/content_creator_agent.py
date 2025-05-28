@@ -5,8 +5,9 @@ from services.llm.agent.base_agent import BaseAgent
 
 
 class ContentCreatorAgent(BaseAgent):
-    def V__init__(self):
-        super().__init__(model_name="Gemini/gemini-2.5-pro")
+    def __init__(self):
+        # super().__init__(model_name="Gemini/gemini-2.5-pro")
+        super().__init__(model_name="Volcengine/doubao-1.5-thinking-pro")
 
     PROMPT_TEMPLATE = open("services/deeper_research/agent/content_creator/content_creator.md", "r", encoding="utf-8").read()
 
@@ -24,19 +25,26 @@ class ContentCreatorAgent(BaseAgent):
 
 
     async def build_messages(self) -> List[Dict[str, str]]:
-        file_path = os.path.join("services/llm/article_agent/style/bi_sytle2.md")
+        file_path = os.path.join("services/llm/article_agent/style/banfo_style_guide.md")
         if os.path.exists(file_path):
             with open(file_path, "r", encoding="utf-8") as f:
                 style_guide = f.read()
 
-        if self.context["article_question_chain"] == "":
-            PROMPT_TEMPLATE = open("services/deeper_research/agent/content_creator/content_creator_V2.md", "r", encoding="utf-8").read()
+        if "article_question_chain" in self.context:
+            PROMPT_TEMPLATE = open("services/deeper_research/agent/content_creator/content_creator_V2.md", "r",
+                                   encoding="utf-8").read()
             self.PROMPT_TEMPLATE = PROMPT_TEMPLATE
-
-        prompt = await self.build_prompt(
-            self.PROMPT_TEMPLATE,
-            topic_framework_with_search_results=self.context["article_question_chain"],
-            style_guide = style_guide
+            prompt = await self.build_prompt(
+                self.PROMPT_TEMPLATE,
+                article_question_chain=self.context["article_question_chain"],
+                style_guide=style_guide
             )
+        else:
+            prompt = await self.build_prompt(
+                self.PROMPT_TEMPLATE,
+                topic_framework_with_search_results=self.context["topic_framework_with_search_results"],
+                style_guide=style_guide
+            )
+
         return [{'role': 'user', 'content': prompt}]
 

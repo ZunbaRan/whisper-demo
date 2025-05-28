@@ -23,14 +23,14 @@ async def article_create_style(podcast_file: str) -> Dict[str, Any]:
     # 创建文章分析工作流
     # podcast_file 去掉  .txt
     tid = podcast_file
-    article_flow = ArticleCreateFlow( tid, "bi")
+    # article_flow = ArticleCreateFlow( tid, "bi")
 
     db_service = DBService()
     entry = db_service.get_entry_by_id(podcast_file)
     title = entry["title"]
     feed_title = entry['feed_title']
 
-    print(f"----------tid: {article_flow.workflow.get_tid()}")
+    # print(f"----------tid: {article_flow.workflow.get_tid()}")
 
     results = []
 
